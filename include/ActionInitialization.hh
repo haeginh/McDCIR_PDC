@@ -31,21 +31,15 @@
 #include "G4VUserActionInitialization.hh"
 #include "DetectorConstruction.hh"
 #include "G4Timer.hh"
-#include "TETModelImport.hh"
 
 class ActionInitialization : public G4VUserActionInitialization
 {
   public:
-    ActionInitialization(TETModelImport* _tetData, G4String outputFileName, G4Timer* initTimer);
+    ActionInitialization();
     virtual ~ActionInitialization();
 
     virtual void BuildForMaster() const;
     virtual void Build() const;
-
-  private:
-    TETModelImport* tetData;
-    G4String        output;
-    G4Timer*        initTimer;
 };
 
 #endif

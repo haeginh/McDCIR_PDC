@@ -24,7 +24,6 @@
 // ********************************************************************
 //
 
-
 #ifndef Run_h
 #define Run_h 1
 
@@ -33,21 +32,23 @@
 #include "G4THitsMap.hh"
 #include "G4SDManager.hh"
 
-typedef std::map<G4int, std::pair<G4double, G4double>> EDEPMAP;
-
 class Run : public G4Run
 {
 public:
-	Run();
-	virtual ~Run();
+    Run(G4int n);
+    virtual ~Run();
 
-	virtual void RecordEvent(const G4Event*);
+    virtual void RecordEvent(const G4Event*);
     virtual void Merge(const G4Run*);
 
-    EDEPMAP* GetEdepMap() {return &edepMap;};
-
+    const std::vector<G4double>* GetDoseMapS() const {return &doseMapS;}
+    const std::vector<G4double>* GetDoseMapL() const {return &doseMapL;}
+    //    G4double GetDap(){return dap;}
 private:
-	EDEPMAP edepMap;
+    G4int   fCollID_skin, fCollID_lens;//, fCollID_dap;
+    std::vector<G4double>  doseMapS;
+    std::vector<G4double>  doseMapL;
+//    G4double dap;
 };
 
 #endif

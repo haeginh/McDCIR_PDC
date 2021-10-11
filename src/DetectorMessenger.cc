@@ -73,27 +73,30 @@ void DetectorMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 	if(command == fTableTransCmd){
 		tableTrans = fTableTransCmd->GetNew3VectorValue(newValue);
 		fDet->SetTablePose(tableTrans, tablePivot);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
+
 	}
 	else if(command == fTablePivotCmd){
 		tablePivot = fTablePivotCmd->GetNewDoubleValue(newValue);
 		fDet->SetTablePose(tableTrans, tablePivot);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 	else if(command == fDetCmd){
 		G4ThreeVector det = fDetCmd->GetNew3VectorValue(newValue);
 		fDet->SetCarmDetPose(det.x()*deg, det.y()*deg, det.z()*cm);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 	else if(command == fGlassTransCmd){
 		glassTrans = fGlassTransCmd->GetNew3VectorValue(newValue);
 		fDet->SetGlassPose(glassTrans, glassAxis, glassTheta);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 	else if(command == fGlassRotCmd){
 		G4ThreeVector rot = fGlassRotCmd->GetNew3VectorValue(newValue);
 		glassTheta = rot.mag() * deg;
 		glassAxis = rot.unit();
 		fDet->SetGlassPose(glassTrans, glassAxis, glassTheta);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
-	// else if(command == fCloseCmd){
-	// 	G4RunManager::GetRunManager()->GeometryHasBeenModified();
-	// }
 }
 

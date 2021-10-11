@@ -23,53 +23,33 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// TETRunAction.hh
-// \file   MRCP_GEANT4/External/include/TETRunAction.hh
-// \author Haegin Han
-//
+//\author: Haegin Han
 
 #ifndef RunAction_h
 #define RunAction_h 1
 
-#include <ostream>
-#include <fstream>
-#include <map>
-
-#include "G4RunManager.hh"
-#include "G4UnitsTable.hh"
 #include "G4UserRunAction.hh"
-#include "G4SystemOfUnits.hh"
-
-#include "PrimaryGeneratorAction.hh"
+#include "globals.hh"
 #include "Run.hh"
-#include "TETModelImport.hh"
+#include <vector>
+
+/// Run action class
 
 class RunAction : public G4UserRunAction
 {
-public:
-	RunAction(TETModelImport* tetData, G4String output, G4Timer* initTimer);
-	virtual ~RunAction();
+  public:
+    RunAction();
+    virtual ~RunAction();
 
-public:
-	virtual G4Run* GenerateRun();
-	virtual void BeginOfRunAction(const G4Run*);
-	virtual void EndOfRunAction(const G4Run*);
+    virtual G4Run* GenerateRun();
+    virtual void BeginOfRunAction(const G4Run*);
+    virtual void   EndOfRunAction(const G4Run*);
 
-	void PrintResult(std::ostream &out);
-  
 private:
-	TETModelImport* tetData;
-	Run*            fRun;
-	G4int           numOfEvent;
-	G4int           runID;
-	G4String        outputFile;
-	G4Timer*        initTimer;
-	G4Timer*        runTimer;
+    Run* fRun;
+    G4int nps;
+    G4int ni, nj, nk;
 };
 
 #endif
-
-
-
-
 

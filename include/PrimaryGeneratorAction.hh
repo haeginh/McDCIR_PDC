@@ -35,7 +35,6 @@
 #include "G4SystemOfUnits.hh"
 #include "G4RotationMatrix.hh"
 #include "G4RandomDirection.hh"
-#include "TETModelImport.hh"
 
 #include <map>
 #include <algorithm>
@@ -72,7 +71,7 @@ public:
   // carm_primary = 20 * deg;   // +LAO, -RAO
   // carm_secondary = 20 * deg; // +CAU, -CRA
   {
-    rotate.setTheta(0);
+    rotate.set(G4RotationMatrix::IDENTITY.axisAngle());
     rotate.rotateY(primary).rotateX(secondary);
 
     G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -810*mm); //what is 810?

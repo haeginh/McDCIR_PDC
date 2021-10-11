@@ -23,22 +23,32 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// TETRunAction.cc
-// \file   MRCP_GEANT4/External/src/TETRunAction.cc
-// \author Haegin Han
 //
 
-#include "G4Timer.hh"
-#include "G4Proton.hh"
-#include "G4Alpha.hh"
-#include "G4Neutron.hh"
-#include <iostream>
 #include "RunAction.hh"
+#include "PrimaryGeneratorAction.hh"
 
-RunAction::RunAction(TETModelImport* _tetData, G4String _output, G4Timer* _init)
-:tetData(_tetData), fRun(0), numOfEvent(0), runID(0), outputFile(_output), initTimer(_init), runTimer(0)
+#include "G4RunManager.hh"
+#include "G4Run.hh"
+#include "G4AccumulableManager.hh"
+#include "G4UnitsTable.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4NistManager.hh"
+#include "DetectorConstruction.hh"
+#include "parallelmesh.hh"
+
+RunAction::RunAction()
+ : G4UserRunAction()
 {
+    const G4double milligray = 1.e-3*gray;
+    const G4double microgray = 1.e-6*gray;
+    const G4double nanogray  = 1.e-9*gray;
+    const G4double picogray  = 1.e-12*gray;
 
+    new G4UnitDefinition("milligray", "milliGy" , "Dose", milligray);
+    new G4UnitDefinition("microgray", "microGy" , "Dose", microgray);
+    new G4UnitDefinition("nanogray" , "nanoGy"  , "Dose", nanogray);
+    new G4UnitDefinition("picogray" , "picoGy"  , "Dose", picogray);
 }
 
 RunAction::~RunAction()
@@ -46,66 +56,31 @@ RunAction::~RunAction()
 
 G4Run* RunAction::GenerateRun()
 {
-	// generate run
-	fRun = new Run();
-	return fRun;
+    static_cast<ParallelMesh*>(G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0))->GetIJK(ni,nj,nk);
+    // generate run
+    fRun = new Run(ni*nj*nk);
+    return fRun;
 }
 
-
-void RunAction::BeginOfRunAction(const G4Run* aRun)
+void RunAction::BeginOfRunAction(const G4Run* run)
 {
-	// print the progress at the interval of 10%
-	numOfEvent=aRun->GetNumberOfEventToBeProcessed();
-	G4RunManager::GetRunManager()->SetPrintProgress(G4int(numOfEvent*0.1));
+  G4cout << "### Run " << run->GetRunID() << " start." << G4endl;
+  nps=run->GetNumberOfEventToBeProcessed();
+  G4RunManager::GetRunManager()->SetPrintProgress(int(nps*0.1));
 }
 
-void RunAction::EndOfRunAction(const G4Run* aRun)
+void RunAction::EndOfRunAction(const G4Run* )
 {
-	// print the result only in the Master
-	if(!isMaster) return;
-
-	// get the run ID
-	runID = aRun->GetRunID();
-
-	// Print the run result by G4cout and std::ofstream
-	//
-	// print by G4cout
-	PrintResult(G4cout);
-
-	// print by std::ofstream
-	std::ofstream ofs(outputFile.c_str());
-	PrintResult(ofs);
-	ofs.close();
-}
-
-void RunAction::PrintResult(std::ostream &out)
-{
-	// Print run result
-	//
-	using namespace std;
-	EDEPMAP edepMap = *fRun->GetEdepMap();
-
-	out << G4endl
-	    << "=====================================================================" << G4endl
-	    << " Run #" << runID << " / Number of event processed : "<< numOfEvent     << G4endl
-	    << "=====================================================================" << G4endl
-	    << "organ ID| "
-		<< setw(19) << "Organ Mass (g)"
-		<< setw(19) << "Dose (Gy/source)"
-		<< setw(19) << "Relative Error" << G4endl;
-
-	out.precision(3);
-	auto massMap = tetData->GetMassMap();
-	for(auto itr : massMap){
-		G4double meanDose    = edepMap[itr.first].first  / itr.second / numOfEvent;
-		G4double squareDoese = edepMap[itr.first].second / (itr.second*itr.second);
-		G4double variance    = ((squareDoese/numOfEvent) - (meanDose*meanDose))/numOfEvent;
-		G4double relativeE   = sqrt(variance)/meanDose;
-
-		out << setw(8)  << itr.first << "| "
-			<< setw(19) << fixed      << itr.second/g;
-		out	<< setw(19) << scientific << meanDose/(joule/kg);
-		out	<< setw(19) << fixed      << relativeE << G4endl;
-	}
-	out << "=====================================================================" << G4endl << G4endl;
+    if(!IsMaster()) return;
+    auto doseMapS=fRun->GetDoseMapS();
+    auto doseMapL=fRun->GetDoseMapL();
+    std::vector<G4double> resultMap(doseMapS->size());
+    std::ofstream ofs("./doseMaps/"+std::to_string(fRun->GetRunID())+".map", std::ios::binary);
+    std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray*0.5;});
+    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
+    std::transform(doseMapL->begin(), doseMapL->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray*0.5;});
+    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
+    ofs.close();
+    //dose map unit: (/cm2)
+//    G4cout<<"dose of DAP meter: "<<G4BestUnit(fRun->GetDap()/nps,"Dose")<<G4endl;
 }

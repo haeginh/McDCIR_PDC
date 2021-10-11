@@ -3,11 +3,11 @@
 #include "G4RunManagerFactory.hh"
 
 #include "DetectorConstruction.hh"
-#include "ParallelPhantom.hh"
 #include "FTFP_BERT.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4ParallelWorldPhysics.hh"
 #include "ActionInitialization.hh"
+#include "parallelmesh.hh"
 
 #include "G4Timer.hh"
 #include "G4VisExecutive.hh"
@@ -15,8 +15,6 @@
 
 #include "Randomize.hh"
 
-#include "TETModelImport.hh"
-#include "PhantomAnimator.hh"
 
 int main(int argc, char** argv)
 {
@@ -34,25 +32,21 @@ int main(int argc, char** argv)
 			macro = argv[++i];
 		}
 		// output file name
-		else if ( G4String(argv[i]) == "-o" ) {
-			output = argv[++i];
-		}
-		// phantom file name
-		else if ( G4String(argv[i]) == "-p" ) {
-			phantomName = argv[++i];
-		}
+		// else if ( G4String(argv[i]) == "-o" ) {
+		// 	output = argv[++i];
+		// }
 		else if ( G4String(argv[i]) == "-v" )
 		{
-			ui = new G4UIExecutive(argc, argv, "csh");
+			ui = new G4UIExecutive(argc, argv, "Qt");
 		}
 		else {
-			cout << "argument check" << endl;
+			G4cout << "argument check" << G4endl;
 			return 1;
 		}
 	}
 
 	// default output file name
-	if ( !output.size() ) output = macro + ".out";
+	// if ( !output.size() ) output = macro + ".out";
 
 	auto* runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::MT);
 
@@ -60,18 +54,15 @@ int main(int argc, char** argv)
 	G4Random::setTheEngine(new CLHEP::RanecuEngine);
 	G4Random::setTheSeed(time(0));
 
-	// Import phantom
-	TETModelImport* tetData = new TETModelImport(phantomName);
-
 	// Set mandatory initialization classes
 	auto det = new DetectorConstruction();
-	det->RegisterParallelWorld(new ParallelPhantom("parallel", tetData));
+	det->RegisterParallelWorld(new ParallelMesh("parallel"));
 	runManager->SetUserInitialization(det);
 	G4VModularPhysicsList* physicsList = new FTFP_BERT;
 	physicsList->RegisterPhysics(new G4StepLimiterPhysics());
 	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallel"));
 	runManager->SetUserInitialization(physicsList);
-	runManager->SetUserInitialization(new ActionInitialization(tetData, output, initTimer));
+	runManager->SetUserInitialization(new ActionInitialization());
 
 	// Initialize visualization
 	G4VisManager* visManager = new G4VisExecutive("Quiet");
@@ -86,8 +77,8 @@ int main(int argc, char** argv)
 	}
 	else {
 		// interactive mode
-		// UImanager->ApplyCommand("/control/execute init_vis.mac");
-		runManager->Initialize();
+		UImanager->ApplyCommand("/control/execute init_vis.mac");
+		// runManager->Initialize();
 		ui->SessionStart();
 		delete ui;
 	}
@@ -95,6 +86,6 @@ int main(int argc, char** argv)
 	delete visManager;
 	delete runManager;
 
-    cout << "EXIT_SUCCESS" << endl;
+    G4cout << "EXIT_SUCCESS" << G4endl;
     return EXIT_SUCCESS;
 }

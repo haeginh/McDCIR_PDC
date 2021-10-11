@@ -31,10 +31,10 @@
 #include "PrimaryGeneratorAction.hh"
 #include "RunAction.hh"
 
-ActionInitialization::ActionInitialization(TETModelImport* _tetData, G4String _output, G4Timer* _init)
- : G4VUserActionInitialization(), tetData(_tetData), output(_output), initTimer(_init)
-{
-}
+ActionInitialization::ActionInitialization()
+ : G4VUserActionInitialization()
+
+{}
 
 
 ActionInitialization::~ActionInitialization()
@@ -43,11 +43,11 @@ ActionInitialization::~ActionInitialization()
 
 void ActionInitialization::BuildForMaster() const
 {
-	SetUserAction(new RunAction(tetData, output, initTimer));
+	SetUserAction(new RunAction());
 }
 
 void ActionInitialization::Build() const
 {
 	SetUserAction(new PrimaryGeneratorAction());
-	SetUserAction(new RunAction(tetData, output, initTimer));
+	SetUserAction(new RunAction());
 }
