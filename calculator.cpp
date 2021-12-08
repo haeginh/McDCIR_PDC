@@ -3,6 +3,7 @@
 #include "G4RunManagerFactory.hh"
 
 #include "DetectorConstruction.hh"
+#include "ParallelGlass.hh"
 #include "ParallelPhantom.hh"
 #include "FTFP_BERT.hh"
 #include "G4StepLimiterPhysics.hh"
@@ -65,11 +66,14 @@ int main(int argc, char** argv)
 
 	// Set mandatory initialization classes
 	auto det = new DetectorConstruction();
-	det->RegisterParallelWorld(new ParallelPhantom("parallel", tetData));
+	det->SetPatientName("Patient_M_H175M83800_fixed");
+	det->RegisterParallelWorld(new ParallelGlass("parallelGlass", "./phantoms/glassTet.1"));
+	det->RegisterParallelWorld(new ParallelPhantom("parallelPhantom", tetData));
 	runManager->SetUserInitialization(det);
 	G4VModularPhysicsList* physicsList = new FTFP_BERT;
 	// physicsList->RegisterPhysics(new G4StepLimiterPhysics());
-	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallel", true));
+	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallelGlass", true));
+	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallelPhantom", true));
 	runManager->SetUserInitialization(physicsList);
 	runManager->SetUserInitialization(new ActionInitialization(tetData, output, initTimer));
 

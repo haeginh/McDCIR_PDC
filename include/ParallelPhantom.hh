@@ -29,12 +29,13 @@
 #define ParallelPhantom_h 1
 
 #include "G4VUserParallelWorld.hh"
+#include "G4PVPlacement.hh"
+#include "G4RunManager.hh"
 #include "globals.hh"
 #include "TETModelImport.hh"
 
 class G4LogicalVolume;
-class G4VPhysicalVolume;
-class ParallelMessenger;
+class ParallelPhantomMessenger;
 
 class ParallelPhantom : public G4VUserParallelWorld
 {
@@ -45,11 +46,15 @@ public:
 public:
   virtual void Construct();
   virtual void ConstructSD();
+  void SetIsoCenter(G4ThreeVector iso){
+    isocenter = iso;
+  }
   void Deform(RotationList vQ, Vector3d root);
 
 private:
   G4bool fConstructed;
-  ParallelMessenger* messenger;
+  ParallelPhantomMessenger* messenger;
+  G4ThreeVector isocenter;
 
   // Radiologist
   TETModelImport*    tetData;

@@ -29,7 +29,7 @@
 #include "PrimaryMessenger.hh" 
 
 PrimaryGeneratorAction::PrimaryGeneratorAction()
-	: G4VUserPrimaryGeneratorAction(), isocenter(1120 * mm, 600 * mm, 1135 * mm)
+	: G4VUserPrimaryGeneratorAction(), focalLength(810*mm)
 {
 	fPrimary = new G4ParticleGun();
 	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
@@ -41,7 +41,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 	// rotate.rotateY(carm_primary).rotateX(carm_secondary);
     rotate.set(G4RotationMatrix::IDENTITY.axisAngle());
 	G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -810 * mm);
-	fPrimary->SetParticlePosition(focalSpot + isocenter);
+	fPrimary->SetParticlePosition(focalSpot);
 
 	messenger = new PrimaryMessenger(this);
 }
@@ -74,7 +74,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 
 G4ThreeVector PrimaryGeneratorAction::SampleRectangularBeamDirection()
 {
-	G4ThreeVector upVec = G4ThreeVector(0, 0, 0) - G4ThreeVector(0, 0, -810);
+	G4ThreeVector upVec = G4ThreeVector(0, 0, 0) - G4ThreeVector(0, 0, -focalLength);
 	G4double a = fabs(upVec.z()) * tan(angle2);
 	G4double b = fabs(upVec.z()) * tan(angle1);
 	G4double x = 2 * a * G4UniformRand() - a;

@@ -31,6 +31,7 @@
 #include "G4UIcmdWithAString.hh"
 #include "G4UIcmdWith3Vector.hh"
 #include "G4UIcmdWithAnInteger.hh"
+#include "G4UIcmdWithADoubleAndUnit.hh"
 #include "PrimaryMessenger.hh"
 
 PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
@@ -46,12 +47,16 @@ PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
 
 	fPeakEnergyCmd = new G4UIcmdWithAnInteger("/beam/peak", this);
 	fPeakEnergyCmd->SetParameterName("peakE[keV]", false);
+
+	fLiftFocalSpotCmd = new G4UIcmdWithADoubleAndUnit("/beam/lift", this);
 }
 
 PrimaryMessenger::~PrimaryMessenger() {
 	delete fBeamCmd;
 	delete fFDCmd;
 	delete fBeamDir;
+	delete fPeakEnergyCmd;
+	delete fLiftFocalSpotCmd;
 }
 
 void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
@@ -76,6 +81,9 @@ void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 	}
 	else if(command == fPeakEnergyCmd){
 		fPrimary->SetSourceEnergy(fPeakEnergyCmd->GetNewIntValue(newValue));
+	}
+	else if(command == fLiftFocalSpotCmd){
+		fPrimary->LiftFocalSpot(fLiftFocalSpotCmd->GetNewDoubleValue(newValue));
 	}
 }
 

@@ -73,7 +73,7 @@ void RunAction::EndOfRunAction(const G4Run* aRun)
 	// PrintResult(G4cout);
 
 	// print by std::ofstream
-	std::ofstream ofs(outputFile.c_str());
+	std::ofstream ofs(outputFile + to_string(runID) + ".out");
 	PrintResult(ofs);
 	ofs.close();
 }

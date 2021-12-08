@@ -42,6 +42,8 @@
 #include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
 #include "DetectorMessenger.hh"
+#include "ParallelPhantom.hh"
+#include "ParallelGlass.hh"
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -51,11 +53,22 @@ public:
 
     virtual G4VPhysicalVolume* Construct();
 
+	// pre init setting
+	void SetIsoCenter(G4ThreeVector iso){
+		carm_isocenter = iso;
+		// pv_frame->SetTranslation(frame_default-carm_isocenter+table_trans);
+		((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
+		((ParallelPhantom*)GetParallelWorld(1))->SetIsoCenter(iso);
+	}
+	void SetTableRefPos(G4ThreeVector ref){table_ref_pos = ref;}
+
     // Operating Table
-    void SetTablePose(G4ThreeVector table_trans, G4double table_pivot_angle) 
+    void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
 	//_table_trans is the translation from when rotation center is at the center of the table
-	{  
-		G4ThreeVector frameOrigin = frame_ralative_to_table + table_default_trans + table_trans; //before rotation
+	{  				
+		G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
+		table_trans = _table_trans;
+		G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
 		if(table_pivot_angle==0) 
 		{
 			pv_frame->SetTranslation(frameOrigin);
@@ -65,52 +78,40 @@ public:
 		frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
 		frame_rotation_matrix->rotateZ(-table_pivot_angle);
 		pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
+		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
 	}
 
-    // Glass
-    void SetGlassPose(G4ThreeVector _glass_trans, G4ThreeVector _glass_axis, G4double _glass_theta) 
+	void UseCurtain(G4bool use = true)
 	{
-		pv_glass->SetTranslation(_glass_trans);
-		pv_glass->GetRotation()->setAxis(_glass_axis);
-		pv_glass->GetRotation()->setTheta(-_glass_theta);
-    }
+		if(use) lv_curtain->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"));
+		else lv_curtain->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"));
+	}
 
-    // C-arm det
-    void SetCarmDetPose(G4double _carm_primary, G4double _carm_secondary, G4double _carm_sid) 
-	// 	carm_primary: rao, lao | carm_secondary: cran, caud
-	{
-		carm_rotation_matrix->setTheta(0); //set identity
-		carm_rotation_matrix->rotateY(_carm_primary).rotateX(_carm_secondary);
-		carm_rotation_matrix->invert();
-		pv_det->SetTranslation(carm_rotation_matrix->inverse()*G4ThreeVector(0,0,_carm_sid-focalLength) + carm_isocenter);
-    }
-
+	void SetPatientName(G4String _patient){patient = _patient;}
 
 private:
     void SetupWorldGeometry();
 
 	void ConstructOperatingTable();
-	G4LogicalVolume* ConstructPatient();
-	void ConstructCarmDet();
-	void ConstructPbGlass();
+	G4LogicalVolume* ConstructPatient(G4String _patient);
+	// void ConstructCarmDet();
+	// void ConstructPbGlass();
 
 	G4LogicalVolume*   worldLogical;
 	G4VPhysicalVolume* worldPhysical;
+	G4ThreeVector carm_isocenter;
 
 	// Operating Table
 	G4VPhysicalVolume* pv_frame;
-	G4ThreeVector table_rotation_center, table_default_trans; //program input (relative coordinate to ChArUco)
+	G4LogicalVolume* lv_curtain;
+	G4ThreeVector table_ref_pos; // right top corner
+	G4ThreeVector table_rotation_center;//, table_default_trans; //program input (relative coordinate to ChArUco)
 	G4RotationMatrix* frame_rotation_matrix; //inverse
-	G4ThreeVector frame_ralative_to_table;
+	G4ThreeVector frame_default, table_trans;
+	G4String patient;
 
-	// Glass
-	G4VPhysicalVolume* pv_glass;
-
-	// C-arm
-	G4VPhysicalVolume* pv_det;
-	G4ThreeVector carm_isocenter;
-	G4RotationMatrix* carm_rotation_matrix; //inverse
-	G4double focalLength;
+	//frame
+	G4double head_margin, curtain_margin;
 
 	//messenger
 	DetectorMessenger* messenger;

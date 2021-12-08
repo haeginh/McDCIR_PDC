@@ -86,7 +86,9 @@
 #
 # To get nice view
 # Make the "World" box invisible
-#/vis/geometry/set/visibility worldLogical 0 false
+/vis/geometry/set/visibility worldLogical 0 false
+/vis/geometry/set/visibility parallelGlass 0 false
+/vis/geometry/set/visibility parallelPhantom 0 false
 #/vis/geometry/set/visibility phantomLogical 0 false
 /vis/viewer/set/style surface
 /vis/viewer/set/hiddenMarker true

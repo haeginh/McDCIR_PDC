@@ -31,22 +31,21 @@
 #include "G4Box.hh"
 #include "G4Tet.hh"
 #include "G4LogicalVolume.hh"
-#include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
-#include "G4RunManager.hh"
 #include "G4Material.hh"
 #include "G4SystemOfUnits.hh"    
 #include "G4MultiFunctionalDetector.hh"
 #include "G4SDManager.hh"
 #include "TETParameterisation.hh"
 #include "TETPSEnergyDeposit.hh"
-#include "ParallelMessenger.hh"
+#include "ParallelPhantomMessenger.hh"
+#include "G4UImanager.hh"
 
 ParallelPhantom
 ::ParallelPhantom(G4String parallelWorldName, TETModelImport* _tetData)
 :G4VUserParallelWorld(parallelWorldName),fConstructed(false), tetData(_tetData)
 {
-  messenger = new ParallelMessenger(this);
+  messenger = new ParallelPhantomMessenger(this);
 }
 
 ParallelPhantom::~ParallelPhantom()
@@ -58,7 +57,7 @@ void ParallelPhantom::Construct()
 {
   if(fConstructed) return;
   fConstructed = true;
-
+ 
   //
   // World
   //
@@ -102,14 +101,21 @@ void ParallelPhantom::ConstructSD()
   SetSensitiveDetector(lv_tet, mfd);
 }
 
+#include "G4GeometryManager.hh"
 void ParallelPhantom::Deform(RotationList vQ, Vector3d root)
 {
   tetData->Deform(vQ, root);
   G4ThreeVector center = (tetData->GetPhantomBoxMax() + tetData->GetPhantomBoxMin())*0.5;
   G4ThreeVector halfSize = (tetData->GetPhantomBoxMax() - tetData->GetPhantomBoxMin())*0.5 + G4ThreeVector(5., 5., 5.)*cm; //5-cm-margin
-  pv_doctor->SetTranslation(center);
+
+  //erase this later (only for sensitivity study)!!!!!!
+  center.setZ(halfSize.z());
+
+  G4GeometryManager::GetInstance()->OpenGeometry(pv_doctor);
+  pv_doctor->SetTranslation(center-isocenter);
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetXHalfLength(halfSize.x());
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetYHalfLength(halfSize.y());
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetZHalfLength(halfSize.z());
- 	G4RunManager::GetRunManager()->GeometryHasBeenModified();
+  G4GeometryManager::GetInstance()->CloseGeometry(pv_doctor);
+ 	// G4RunManager::GetRunManager()->GeometryHasBeenModified();
 }

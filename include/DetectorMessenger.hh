@@ -38,6 +38,8 @@ class G4UIdirectory;
 class G4UIcmdWith3Vector;
 class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWithADoubleAndUnit;
+class G4UIcmdWithoutParameter;
+class G4UIcmdWithABool;
 class DetectorConstruction;
 
 class DetectorMessenger: public G4UImessenger
@@ -51,15 +53,19 @@ public:
 private:
 	DetectorConstruction* fDet;
 	G4UIdirectory*        fMachineDir;
+	G4UIcmdWith3VectorAndUnit* fIsoCenterCmd; //isocenter position in ref. coord. (ChArUco)
+	G4UIcmdWith3VectorAndUnit* fTableRefCmd; //table ref. position in ref. coord (ChArUco)
 	G4UIcmdWith3VectorAndUnit* fTableTransCmd; //trans
 	G4UIcmdWithADoubleAndUnit* fTablePivotCmd; //pivot
 	G4UIcmdWith3Vector*        fDetCmd; //primary, secondary, SID
+	G4UIcmdWithoutParameter*   fRemoveDetCmd;
 	G4UIcmdWith3VectorAndUnit* fGlassTransCmd;
 	G4UIcmdWith3Vector*        fGlassRotCmd; // axis * angle(in deg)
+	G4UIcmdWithoutParameter*   fRemoveGlassCmd;
+	G4UIcmdWithABool*          fCurtainCmd;
 
 	G4ThreeVector tableTrans, glassTrans, glassAxis;
 	G4double tablePivot, glassTheta;
-	
 };
 
 #endif
