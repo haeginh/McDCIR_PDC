@@ -58,8 +58,8 @@ DetectorConstruction::~DetectorConstruction()
 
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
-	((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
-	((ParallelPhantom*)GetParallelWorld(1))->SetIsoCenter(carm_isocenter);
+	// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
+	((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
 	SetupWorldGeometry();
 	ConstructOperatingTable();
 	// ConstructPbGlass();

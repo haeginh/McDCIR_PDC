@@ -85,7 +85,7 @@ void ParallelPhantom::Construct()
   //   new G4PVPlacement(0,G4ThreeVector(),new G4LogicalVolume(tetData->GetTetrahedron(i),tissue, "tet"),"tet",worldLogical,false,0);
   // }
   lv_tet = new G4LogicalVolume(new G4Tet("tet", G4ThreeVector(), G4ThreeVector(0, 0, 1*cm),
-                                         G4ThreeVector(0, 1*cm, 0), G4ThreeVector(1*cm, 0, 0)),G4Material::GetMaterial("G4_TISSUE_SOFT_ICRP"),"tet");
+                                         G4ThreeVector(0, 1*cm, 0), G4ThreeVector(1*cm, 0, 0)), G4NistManager::Instance()->FindOrBuildMaterial("G4_TISSUE_SOFT_ICRP"),"LVtet");
   // lv_tet->SetVisAttributes(G4VisAttributes::GetInvisible());
   TETParameterisation* param = new TETParameterisation(tetData);
   new G4PVParameterised("paraPara",lv_tet, lv_phantomBox, kUndefined, tetData->GetNumTetrahedron(), param);

@@ -57,8 +57,8 @@ public:
 	void SetIsoCenter(G4ThreeVector iso){
 		carm_isocenter = iso;
 		// pv_frame->SetTranslation(frame_default-carm_isocenter+table_trans);
-		((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
-		((ParallelPhantom*)GetParallelWorld(1))->SetIsoCenter(iso);
+		// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
+		((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(iso);
 	}
 	void SetTableRefPos(G4ThreeVector ref){table_ref_pos = ref;}
 

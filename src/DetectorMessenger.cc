@@ -96,8 +96,8 @@ void DetectorMessenger::SetNewValue(G4UIcommand *command, G4String newValue)
 	{
 		G4ThreeVector iso = fIsoCenterCmd->GetNew3VectorValue(newValue);
 		fDet->SetIsoCenter(iso);
-		((ParallelGlass*) fDet->GetParallelWorld(0))->SetIsoCenter(iso);
-		((ParallelPhantom*) fDet->GetParallelWorld(1))->SetIsoCenter(iso);
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->SetIsoCenter(iso);
+		((ParallelPhantom*) fDet->GetParallelWorld(0))->SetIsoCenter(iso);
 	}
 	else if (command == fTableRefCmd)
 	{
@@ -116,27 +116,27 @@ void DetectorMessenger::SetNewValue(G4UIcommand *command, G4String newValue)
 	else if (command == fDetCmd)
 	{
 		G4ThreeVector det = fDetCmd->GetNew3VectorValue(newValue);
-		((ParallelGlass*) fDet->GetParallelWorld(0))->SetCarmDetPose(det.x() * deg, det.y() * deg, det.z() * cm);
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->SetCarmDetPose(det.x() * deg, det.y() * deg, det.z() * cm);
 	}
 	else if (command == fRemoveDetCmd)
 	{
-		((ParallelGlass*) fDet->GetParallelWorld(0))->RemoveCarmDet();
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->RemoveCarmDet();
 	}
 	else if (command == fGlassTransCmd)
 	{
 		glassTrans = fGlassTransCmd->GetNew3VectorValue(newValue);
-		((ParallelGlass*) fDet->GetParallelWorld(0))->SetGlassPose(glassTrans, glassAxis, glassTheta);
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->SetGlassPose(glassTrans, glassAxis, glassTheta);
 	}
 	else if (command == fGlassRotCmd)
 	{
 		G4ThreeVector rot = fGlassRotCmd->GetNew3VectorValue(newValue);
 		glassTheta = rot.mag() * deg;
 		glassAxis = rot.unit();
-		((ParallelGlass*) fDet->GetParallelWorld(0))->SetGlassPose(glassTrans, glassAxis, glassTheta);
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->SetGlassPose(glassTrans, glassAxis, glassTheta);
 	}
 	else if (command == fRemoveGlassCmd)
 	{
-		((ParallelGlass*) fDet->GetParallelWorld(0))->RemoveGlass();
+		// ((ParallelGlass*) fDet->GetParallelWorld(0))->RemoveGlass();
 	}
 	else if (command == fCurtainCmd)
 	{
