@@ -28,7 +28,7 @@
 /// \brief Implementation of the ActionInitialization class
 
 #include "ActionInitialization.hh"
-#include "PrimaryGeneratorAction_PS.hh"
+// #include "PrimaryGeneratorAction_PS.hh"
 #include "RunAction.hh"
 
 ActionInitialization::ActionInitialization(TETModelImport* _tetData, G4String _output, G4Timer* _init)
