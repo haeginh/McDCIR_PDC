@@ -56,6 +56,7 @@ private:
 	G4UIcmdWith3Vector*        fBeamCmd;
 	G4UIcmdWithAnInteger*      fPeakEnergyCmd;
 	G4UIcmdWithADoubleAndUnit* fLiftFocalSpotCmd;
+	G4UIcmdWithADoubleAndUnit* fFocalLengthCmd;
 
 	DetectorZoomField fd;
 	G4double sid;

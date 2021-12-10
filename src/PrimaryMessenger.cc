@@ -49,6 +49,8 @@ PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
 	fPeakEnergyCmd->SetParameterName("peakE[keV]", false);
 
 	fLiftFocalSpotCmd = new G4UIcmdWithADoubleAndUnit("/beam/lift", this);
+
+	fFocalLengthCmd = new G4UIcmdWithADoubleAndUnit("/beam/focalLength", this);
 }
 
 PrimaryMessenger::~PrimaryMessenger() {
@@ -57,6 +59,7 @@ PrimaryMessenger::~PrimaryMessenger() {
 	delete fBeamDir;
 	delete fPeakEnergyCmd;
 	delete fLiftFocalSpotCmd;
+	delete fFocalLengthCmd;
 }
 
 void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
@@ -84,6 +87,10 @@ void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 	}
 	else if(command == fLiftFocalSpotCmd){
 		fPrimary->LiftFocalSpot(fLiftFocalSpotCmd->GetNewDoubleValue(newValue));
+	}
+	else if(command == fFocalLengthCmd)
+	{
+		fPrimary->SetFocalLength(fFocalLengthCmd->GetNewDoubleValue(newValue));
 	}
 }
 
