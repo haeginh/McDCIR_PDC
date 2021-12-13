@@ -35,7 +35,7 @@
 #include "PrimaryMessenger.hh"
 
 PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
-:G4UImessenger(), fPrimary(_primary), fd(DetectorZoomField::FD16), sid(119.5 * cm)
+:G4UImessenger(), fPrimary(_primary), fd(DetectorZoomField::FD48), sid(119.5 * cm)
 {
 	fBeamDir = new G4UIdirectory("/beam/");
 	
