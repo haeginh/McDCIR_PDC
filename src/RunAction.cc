@@ -66,6 +66,7 @@ void RunAction::BeginOfRunAction(const G4Run* run)
 {
   G4cout << "### Run " << run->GetRunID() << " start." << G4endl;
   nps=run->GetNumberOfEventToBeProcessed();
+  // nps = 100000000;
   G4RunManager::GetRunManager()->SetPrintProgress(int(nps*0.1));
 }
 
@@ -76,9 +77,9 @@ void RunAction::EndOfRunAction(const G4Run* )
     auto doseMapL=fRun->GetDoseMapL();
     std::vector<G4double> resultMap(doseMapS->size());
     std::ofstream ofs("./doseMaps/"+std::to_string(fRun->GetRunID())+".map", std::ios::binary);
-    std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray*0.5;});
+    std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray;});
     ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
-    std::transform(doseMapL->begin(), doseMapL->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray*0.5;});
+    std::transform(doseMapL->begin(), doseMapL->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray;});
     ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
     ofs.close();
     //dose map unit: (/cm2)

@@ -58,6 +58,7 @@ class MeshSD : public G4VSensitiveDetector
     G4int    ni, nj, nk;
     std::vector<G4double> energyVec;
     std::vector<G4double> skinDvec, lensDvec;
+    std::vector<G4double> skinSlope, lensSlope;
     G4ParticleDefinition* gamma;
 };
 

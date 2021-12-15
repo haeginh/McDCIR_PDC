@@ -56,6 +56,7 @@ int main(int argc, char** argv)
 
 	// Set mandatory initialization classes
 	auto det = new DetectorConstruction();
+	det->SetPatientName("patient");
 	det->RegisterParallelWorld(new ParallelMesh("parallel"));
 	runManager->SetUserInitialization(det);
 	G4VModularPhysicsList* physicsList = new FTFP_BERT;

@@ -31,10 +31,11 @@
 #include "G4UIcmdWithAString.hh"
 #include "G4UIcmdWith3Vector.hh"
 #include "G4UIcmdWithAnInteger.hh"
+#include "G4UIcmdWithADoubleAndUnit.hh"
 #include "PrimaryMessenger.hh"
 
 PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
-:G4UImessenger(), fPrimary(_primary), fd(DetectorZoomField::FD16), sid(119.5 * cm)
+:G4UImessenger(), fPrimary(_primary), fd(DetectorZoomField::FD48), sid(119.5 * cm)
 {
 	fBeamDir = new G4UIdirectory("/beam/");
 	
@@ -46,12 +47,19 @@ PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
 
 	fPeakEnergyCmd = new G4UIcmdWithAnInteger("/beam/peak", this);
 	fPeakEnergyCmd->SetParameterName("peakE[keV]", false);
+
+	fLiftFocalSpotCmd = new G4UIcmdWithADoubleAndUnit("/beam/lift", this);
+
+	fFocalLengthCmd = new G4UIcmdWithADoubleAndUnit("/beam/focalLength", this);
 }
 
 PrimaryMessenger::~PrimaryMessenger() {
 	delete fBeamCmd;
 	delete fFDCmd;
 	delete fBeamDir;
+	delete fPeakEnergyCmd;
+	delete fLiftFocalSpotCmd;
+	delete fFocalLengthCmd;
 }
 
 void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
@@ -76,6 +84,13 @@ void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 	}
 	else if(command == fPeakEnergyCmd){
 		fPrimary->SetSourceEnergy(fPeakEnergyCmd->GetNewIntValue(newValue));
+	}
+	else if(command == fLiftFocalSpotCmd){
+		fPrimary->LiftFocalSpot(fLiftFocalSpotCmd->GetNewDoubleValue(newValue));
+	}
+	else if(command == fFocalLengthCmd)
+	{
+		fPrimary->SetFocalLength(fFocalLengthCmd->GetNewDoubleValue(newValue));
 	}
 }
 

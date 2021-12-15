@@ -74,8 +74,21 @@ public:
     rotate.set(G4RotationMatrix::IDENTITY.axisAngle());
     rotate.rotateY(primary).rotateX(secondary);
 
-    G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -810*mm); //what is 810?
-    fPrimary->SetParticlePosition(focalSpot + isocenter);
+    G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -focalLength);
+    fPrimary->SetParticlePosition(focalSpot);
+  }
+
+  void SetFocalLength(G4double _fl)
+  {
+    focalLength = _fl;
+    G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -focalLength);
+    fPrimary->SetParticlePosition(focalSpot);
+  }
+
+  void LiftFocalSpot(G4double lift)
+  {
+    G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -focalLength);
+    fPrimary->SetParticlePosition(focalSpot + G4ThreeVector(0, 0, lift));
   }
 
   G4ThreeVector SampleRectangularBeamDirection();
@@ -84,13 +97,14 @@ private:
   G4ParticleGun *fPrimary;
   G4double angle1, angle2;
   G4RotationMatrix rotate;
-  G4ThreeVector isocenter;
-
+  
   // Energy
   map<G4double, G4double> cdf;
 
   //messenger
   PrimaryMessenger *messenger;
+
+  G4double focalLength;
 };
 
 #endif

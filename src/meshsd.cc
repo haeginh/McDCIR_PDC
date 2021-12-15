@@ -42,14 +42,23 @@ MeshSD::MeshSD(const G4String& name, G4int _i, G4int _j, G4int _k, G4double cell
   collectionName.insert("doseS");
   collectionName.insert("doseE");
 
-  energyVec = {0,0.002,0.005,0.01,0.015,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.1,0.15};
-  skinDvec  = {0,2.96637,22.6288,7.18402,3.18922,1.85468,0.810165,0.488154,0.370343,0.345776,0.341135,0.367115,0.426512,0.682618};
-  lensDvec  = {0,0.276,0.689,1.38,1.98,1.52,0.833,0.563,0.460,0.437,0.446,0.468,0.555,0.842};
+  energyVec = {0,0.01,0.015,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.1,0.15};
+  skinDvec  = {0,2.62E+00, 1.29E+00,7.89E-01, 4.25E-01, 3.02E-01, 2.58E-01, 2.49E-01, 2.57E-01, 2.76E-01, 3.33E-01, 5.24E-01};
+  lensDvec  = {0,2.96E-01,5.55E-01,5.03E-01,3.35E-01,2.55E-01,2.28E-01,2.28E-01,2.44E-01,2.68E-01,3.30E-01,5.26E-01};
+  skinSlope.resize(energyVec.size(), 0);
+  lensSlope.resize(energyVec.size(), 0);
+
+  // energyVec = {0,0.002,0.005,0.01,0.015,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.1,0.15};
+  // skinDvec  = {0,2.96637,22.6288,7.18402,3.18922,1.85468,0.810165,0.488154,0.370343,0.345776,0.341135,0.367115,0.426512,0.682618};
+  // lensDvec  = {0,0.276,0.689,1.38,1.98,1.52,0.833,0.563,0.460,0.437,0.446,0.468,0.555,0.842};
   G4double coeff = 1E-12*(joule/kg)*cm2/cellVol;
   for(size_t i=0;i<energyVec.size();i++){
       energyVec[i] *= MeV;
       skinDvec[i] *= coeff;
       lensDvec[i] *= coeff;
+      if(i==0) continue;
+      skinSlope[i] = (skinDvec[i]-skinDvec[i-1]) / (energyVec[i] - energyVec[i-1]);
+      lensSlope[i] = (lensDvec[i]-lensDvec[i-1]) / (energyVec[i] - energyVec[i-1]);
   }
   gamma
     = G4ParticleTable::GetParticleTable()->FindParticle("gamma");
@@ -107,9 +116,11 @@ void MeshSD::EndOfEvent(G4HCofThisEvent*)
 void MeshSD::CalculateDoses(G4double energy, G4double &skinDose, G4double &lensDose){
     for(size_t i=1;i<energyVec.size();i++){
         if(energy>energyVec[i]) continue;
-        G4double intpltn = (energy-energyVec[i-1])/(energyVec[i]-energyVec[i-1]);
-        skinDose = skinDvec[i-1] + (skinDvec[i]-skinDvec[i-1])*intpltn;
-        lensDose = lensDvec[i-1] + (lensDvec[i]-lensDvec[i-1])*intpltn;
+        skinDose = skinDvec[i-1] + (energy-energyVec[i-1])*skinSlope[i];
+        lensDose = lensDvec[i-1] + (energy-energyVec[i-1])*lensSlope[i];
+        // G4double intpltn = (energy-energyVec[i-1])/(energyVec[i]-energyVec[i-1]);
+        // skinDose = skinDvec[i-1] + (skinDvec[i]-skinDvec[i-1])*intpltn;
+        // lensDose = lensDvec[i-1] + (lensDvec[i]-lensDvec[i-1])*intpltn;
         return;
     }
 

@@ -39,6 +39,7 @@ class G4UIdirectory;
 class G4UIcmdWithAString;
 class G4UIcmdWith3Vector;
 class G4UIcmdWithAnInteger;
+class G4UIcmdWithADoubleAndUnit;
 
 class PrimaryMessenger: public G4UImessenger
 {
@@ -54,6 +55,8 @@ private:
 	G4UIcmdWithAString*        fFDCmd;
 	G4UIcmdWith3Vector*        fBeamCmd;
 	G4UIcmdWithAnInteger*      fPeakEnergyCmd;
+	G4UIcmdWithADoubleAndUnit* fLiftFocalSpotCmd;
+	G4UIcmdWithADoubleAndUnit* fFocalLengthCmd;
 
 	DetectorZoomField fd;
 	G4double sid;
