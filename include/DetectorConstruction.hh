@@ -65,7 +65,7 @@ public:
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
 	//_table_trans is the translation from when rotation center is at the center of the table
 	{  				
-		G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
+		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
 		table_trans = _table_trans;
 		G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
 		if(table_pivot_angle==0) 
@@ -77,7 +77,7 @@ public:
 		frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
 		frame_rotation_matrix->rotateZ(-table_pivot_angle);
 		pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
+		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
 	}
 
 	void UseCurtain(G4bool use = true)

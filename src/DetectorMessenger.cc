@@ -141,5 +141,6 @@ void DetectorMessenger::SetNewValue(G4UIcommand *command, G4String newValue)
 	{
 		fDet->UseCurtain(fCurtainCmd->GetNewBoolValue(newValue));
 	}
+	G4RunManager::GetRunManager()->GeometryHasBeenModified(true);
 	// G4UImanager::GetUIpointer()->ApplyCommand("/vis/geometry/restore");
 }
