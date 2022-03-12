@@ -112,7 +112,7 @@ void ParallelPhantom::Deform(RotationList vQ, Vector3d root)
   center.setZ(halfSize.z());
 
   G4GeometryManager::GetInstance()->OpenGeometry(pv_doctor);
-  pv_doctor->SetTranslation(center-isocenter);
+  pv_doctor->SetTranslation(center);
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetXHalfLength(halfSize.x());
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetYHalfLength(halfSize.y());
   dynamic_cast<G4Box*>(pv_doctor->GetLogicalVolume()->GetSolid())->SetZHalfLength(halfSize.z());

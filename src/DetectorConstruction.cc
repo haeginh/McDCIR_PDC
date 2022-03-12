@@ -34,9 +34,10 @@
 using namespace std;
 
 DetectorConstruction::DetectorConstruction()
-:worldLogical(0) ,worldPhysical(0), carm_isocenter(1120 * mm, 600 * mm, 1135 * mm), table_ref_pos(87*cm, 130*cm, 78.5*cm),//table_default_trans(1.12*m, -0.3*m, 0.785*m),
-table_rotation_center(1.12*m, -0.3*m, 0.785*m), head_margin(10.*cm), curtain_margin(10.*cm)
+:worldLogical(0) ,worldPhysical(0), table_rotation_center(-50.*mm, -1625*mm, 0.), head_margin(5.*cm), curtain_margin(10.*cm)
 {
+	SetTableSize(G4ThreeVector(55*cm, 290*cm, 1.43*mm));
+	SetTableRefPos(G4ThreeVector(-327, 398, -175)*mm);
 	// table_rotation_center = table_default_trans;
 	// Operating Table (w/ patient, curtain)
 	// table_ocr = G4ThreeVector(-280,-960,-10); // Initial position
@@ -59,7 +60,6 @@ DetectorConstruction::~DetectorConstruction()
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
 	// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
-	((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
 	SetupWorldGeometry();
 	ConstructOperatingTable();
 	// ConstructPbGlass();
@@ -98,50 +98,30 @@ void DetectorConstruction::SetupWorldGeometry()
 #include "G4GeometryManager.hh"
 void DetectorConstruction::ConstructOperatingTable()
 {
-	G4ThreeVector tableHalfSize(280*mm, 3115*mm*0.5, 1.43*mm*0.5);
-	G4ThreeVector curtainHalfSize(0.25*mm, 250*mm, 200*mm);
-
-	G4LogicalVolume* lv_phantomBox = ConstructPatient(patient);
-	lv_phantomBox->SetVisAttributes(G4VisAttributes::GetInvisible());
-
-	// frame
-	G4double frameHalfX = max(tableHalfSize.x(),((G4Box*) lv_phantomBox->GetSolid())->GetXHalfLength());
-	G4double frameHalfY = tableHalfSize.y();
-	G4double frameHalfZ = curtainHalfSize.z()+((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength();
-	G4Box* frame = new G4Box("sol_frame", frameHalfX, frameHalfY, frameHalfZ);
-	G4LogicalVolume* lv_frame = new G4LogicalVolume(frame, G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"), "lv_frame");
-	G4VisAttributes* frameVA = new G4VisAttributes();
-	frameVA->SetForceWireframe(true);
-	lv_frame->SetVisAttributes(frameVA);
-	// lv_frame->SetVisAttributes(G4VisAttributes::GetInvisible());
-	frame_rotation_matrix = new G4RotationMatrix();
-	frame_default = table_ref_pos - G4ThreeVector(-frameHalfX + curtainHalfSize.x()*2, frameHalfY, -frameHalfZ+curtainHalfSize.z()*2.);
-	pv_frame = 	new G4PVPlacement(frame_rotation_matrix, frame_default - carm_isocenter, lv_frame, "pv_frame", worldLogical, false, 1);
-
-	// phantom box
-	G4ThreeVector phanPos;
-	phanPos.setX(-frameHalfX + curtainHalfSize.x()*2. + ((G4Box*) lv_phantomBox->GetSolid())->GetXHalfLength());
-	phanPos.setY(frameHalfY - head_margin - ((G4Box*) lv_phantomBox->GetSolid())->GetYHalfLength());
-	phanPos.setZ(frameHalfZ - ((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength());
-	new G4PVPlacement(0, phanPos,lv_phantomBox, "phantom box", lv_frame, false, 0);
+	table_rot = new G4RotationMatrix;
 
 	// Operating table
-	G4Box* table = new G4Box("sol_table", tableHalfSize.x(), tableHalfSize.y(), tableHalfSize.z());
+	G4Box* table = new G4Box("sol_table", table_half_size.x(), table_half_size.y(), table_half_size.z());
 	G4LogicalVolume* lv_table = new G4LogicalVolume(table, G4NistManager::Instance()->FindOrBuildMaterial("G4_Al"), "lv_table");
-	G4ThreeVector tablePos;
-	tablePos.setX(-frameHalfX + curtainHalfSize.x()*2. + tableHalfSize.x());
-	tablePos.setZ(-frameHalfZ + curtainHalfSize.z()*2. - tableHalfSize.z());
-	new G4PVPlacement(0, tablePos, lv_table, "pv_table", lv_frame, false, 1);
+	pv_table = new G4PVPlacement(table_rot, table_center, lv_table, "pv_table", worldLogical, false, 1);
 	lv_table->SetVisAttributes( new G4VisAttributes(G4Colour(1.,1.,0.)));
 
-	// Pb Curtain - ? x ? cm lead apron, lead equivalence 0.5 mm Pb
+	// phantom box
+	G4LogicalVolume* lv_phantomBox = ConstructPatient(patient);
+	lv_phantomBox->SetVisAttributes(G4VisAttributes::GetInvisible());
+	phantom_center = table_center + 
+	                        G4ThreeVector(0., table_half_size.y()-((G4Box*) lv_phantomBox->GetSolid())->GetYHalfLength(),
+							                  table_half_size.z() + ((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength());
+	pv_phantom = new G4PVPlacement(table_rot, phantom_center,lv_phantomBox, "phantom box", worldLogical, false, 0);
+
+	// Pb Curtain - lead equivalence 0.5 mm Pb
+	G4ThreeVector curtainHalfSize(0.25*mm, 250*mm, 200*mm);
 	G4Box* curtain = new G4Box("sol_curtain", curtainHalfSize.x(), curtainHalfSize.y(), curtainHalfSize.z());
-	G4ThreeVector curtainPos;
-	curtainPos.setX(-frameHalfX + curtainHalfSize.x());
-	curtainPos.setY(frameHalfY - curtain_margin - curtainHalfSize.y());
-	curtainPos.setZ(-frameHalfZ + curtainHalfSize.z());
+	curtain_center.setX(table_center.x() - table_half_size.x() - curtainHalfSize.x());
+	curtain_center.setY(table_center.y() + table_half_size.y() - curtain_margin - curtainHalfSize.y());
+	curtain_center.setZ(table_center.z() -table_half_size.z() - curtainHalfSize.z());
 	lv_curtain = new G4LogicalVolume(curtain, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_curtain");
-	new G4PVPlacement(0, curtainPos, lv_curtain, "pv_curtain", lv_frame, false, 1);
+	pv_curtain = new G4PVPlacement(table_rot, curtain_center, lv_curtain, "pv_curtain", worldLogical, false, 1);
 	lv_curtain->SetVisAttributes( new G4VisAttributes(G4Colour(0.,0.,1.,0.8)) );
 }
 

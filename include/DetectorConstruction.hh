@@ -44,6 +44,7 @@
 #include "DetectorMessenger.hh"
 #include "ParallelPhantom.hh"
 #include "ParallelGlass.hh"
+#include <Eigen/Core>
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -54,31 +55,40 @@ public:
     virtual G4VPhysicalVolume* Construct();
 
 	// pre init setting
-	void SetIsoCenter(G4ThreeVector iso){
-		carm_isocenter = iso;
-		// pv_frame->SetTranslation(frame_default-carm_isocenter+table_trans);
-		// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
-		((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(iso);
+	void SetTableRefPos(G4ThreeVector ref){ // right top corner (rel. to iso.)
+		table_center.setX(ref.x()+table_half_size.x());
+		table_center.setY(ref.y()-table_half_size.y());
+		table_center.setZ(ref.z()-table_half_size.z());
 	}
-	void SetTableRefPos(G4ThreeVector ref){table_ref_pos = ref;}
 
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
-	//_table_trans is the translation from when rotation center is at the center of the table
 	{  				
-		G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
-		table_trans = _table_trans;
-		G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
-		if(table_pivot_angle==0) 
-		{
-			pv_frame->SetTranslation(frameOrigin);
-			return;
-		}
+		table_rot->rotateZ(-table_pivot_angle);
+		Eigen::Rotation2Dd rot(table_pivot_angle);
+		Eigen::Translation2d trans0(table_rotation_center.x(), table_rotation_center.y());
+		auto T = rot.inverse()*trans0*rot*trans0.inverse()*Eigen::Translation2d(_table_trans.x(), _table_trans.y());
+		Eigen::Vector2d transT = (T*Eigen::Translation2d(table_center.x(), table_center.y())).translation();
+		Eigen::Vector2d transC = (T*Eigen::Translation2d(curtain_center.x(), curtain_center.y())).translation();
+		Eigen::Vector2d transP = (T*Eigen::Translation2d(phantom_center.x(), phantom_center.y())).translation();
+		pv_table->SetTranslation(G4ThreeVector(transT(0), transT(1), table_center.z()+_table_trans.z()));
+		pv_curtain->SetTranslation(G4ThreeVector(transC(0), transC(1), curtain_center.z()+_table_trans.z()));
+		pv_phantom->SetTranslation(G4ThreeVector(transP(0), transP(1), phantom_center.z()+_table_trans.z()));
 
-		frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
-		frame_rotation_matrix->rotateZ(-table_pivot_angle);
-		pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
+
+		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
+		// table_trans = _table_trans;
+		// G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
+		// if(table_pivot_angle==0) 
+		// {
+		// 	pv_frame->SetTranslation(frameOrigin);
+		// 	return;
+		// }
+
+		// frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
+		// frame_rotation_matrix->rotateZ(-table_pivot_angle);
+		// pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
+		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
 	}
 
 	void UseCurtain(G4bool use = true)
@@ -90,6 +100,10 @@ public:
 	void SetPatientName(G4String _patient){patient = _patient;}
 
 private:
+	void SetTableSize(G4ThreeVector size){ // full size
+		table_half_size = size*0.5;
+	}
+
     void SetupWorldGeometry();
 
 	void ConstructOperatingTable();
@@ -99,15 +113,15 @@ private:
 
 	G4LogicalVolume*   worldLogical;
 	G4VPhysicalVolume* worldPhysical;
-	G4ThreeVector carm_isocenter;
 
 	// Operating Table
-	G4VPhysicalVolume* pv_frame;
+	G4VPhysicalVolume *pv_table, *pv_phantom, *pv_curtain;
 	G4LogicalVolume* lv_curtain;
-	G4ThreeVector table_ref_pos; // right top corner
-	G4ThreeVector table_rotation_center;//, table_default_trans; //program input (relative coordinate to ChArUco)
-	G4RotationMatrix* frame_rotation_matrix; //inverse
-	G4ThreeVector frame_default, table_trans;
+	G4ThreeVector table_rotation_center, table_half_size;//relative coordinate to isocenter
+	G4ThreeVector table_center, curtain_center, phantom_center; // default: w/o table trans.
+	G4RotationMatrix* table_rot; //inverse
+	// G4RotationMatrix* frame_rotation_matrix; //inverse
+	// G4ThreeVector table_trans; //frame_default, 
 	G4String patient;
 
 	//frame

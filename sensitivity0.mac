@@ -7,11 +7,11 @@
 /run/verbose 2
 
 # Change the default number of threads (in multi-threaded mode)
-/run/numberOfThreads 80
+/run/numberOfThreads 1
 
 # Initialize kernel
 /machine/tableRef 60 120 78.5 cm
-/machine/isocenter 90 60 113.5 cm
+#/machine/isocenter 90 60 113.5 cm
 /run/initialize
 
 #/machine/removeDet
@@ -19,8 +19,8 @@
 /machine/useCurtain false
 /machine/tableTrans 0 0 14 cm
 
-/phantom/data record.txt
-/phantom/frame 51
+#/phantom/data record.txt
+#/phantom/frame 51
 
 /run/beamOn 1000000000
 

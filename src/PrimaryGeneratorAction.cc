@@ -112,8 +112,8 @@ void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 				G4double energy, intensity;
 				stringstream ss2(dump);
 				ss2 >> energy >> intensity;
-				sum += energy * intensity;
-				pdf.push_back(make_pair(energy * intensity, energy * keV));
+				sum += intensity;
+				pdf.push_back(make_pair(intensity, energy * keV));
 			}
 		}
 	}

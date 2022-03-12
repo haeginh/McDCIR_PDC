@@ -46,15 +46,11 @@ public:
 public:
   virtual void Construct();
   virtual void ConstructSD();
-  void SetIsoCenter(G4ThreeVector iso){
-    isocenter = iso;
-  }
   void Deform(RotationList vQ, Vector3d root);
 
 private:
   G4bool fConstructed;
   ParallelPhantomMessenger* messenger;
-  G4ThreeVector isocenter;
 
   // Radiologist
   TETModelImport*    tetData;

@@ -48,15 +48,12 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction *_det)
 {
 	fMachineDir = new G4UIdirectory("/machine/");
 	
-	fIsoCenterCmd = new G4UIcmdWith3VectorAndUnit("/machine/isocenter", this);
-	fIsoCenterCmd->AvailableForStates(G4State_Idle, G4State_PreInit);
-	fIsoCenterCmd->SetParameterName("isoX", "isoY", "isoZ", false);
-	
+
 	fTableRefCmd = new G4UIcmdWith3VectorAndUnit("/machine/tableRef", this);
 	fTableRefCmd->AvailableForStates(G4State_PreInit);
 	
 	fTableTransCmd = new G4UIcmdWith3VectorAndUnit("/machine/tableTrans", this);
-	fTablePivotCmd = new G4UIcmdWithADoubleAndUnit("/mahcine/pivot", this);
+	fTablePivotCmd = new G4UIcmdWithADoubleAndUnit("/machine/pivot", this);
 	fDetCmd = new G4UIcmdWith3Vector("/machine/c-arm", this);
 	fRemoveDetCmd = new G4UIcmdWithoutParameter("/machine/removeDet", this);
 	fGlassTransCmd = new G4UIcmdWith3VectorAndUnit("/machine/glassTrans", this);
@@ -64,7 +61,6 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction *_det)
 	fRemoveGlassCmd = new G4UIcmdWithoutParameter("/machine/removeGlass", this);
 	fCurtainCmd=  new G4UIcmdWithABool("/machine/useCurtain", this);
 
-	fIsoCenterCmd->SetDefaultUnit("cm");
 	fTableRefCmd->SetDefaultUnit("cm");
 	fTableTransCmd->SetDefaultUnit("cm");
 	fTablePivotCmd->SetDefaultUnit("deg");
@@ -77,7 +73,6 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction *_det)
 DetectorMessenger::~DetectorMessenger()
 {
 	delete fMachineDir;
-	delete fIsoCenterCmd;
 	delete fTableRefCmd;
 	delete fTableTransCmd; //trans
 	delete fTablePivotCmd; //pivot
@@ -92,14 +87,7 @@ DetectorMessenger::~DetectorMessenger()
 #include "G4UImanager.hh"
 void DetectorMessenger::SetNewValue(G4UIcommand *command, G4String newValue)
 {
-	if (command == fIsoCenterCmd)
-	{
-		G4ThreeVector iso = fIsoCenterCmd->GetNew3VectorValue(newValue);
-		fDet->SetIsoCenter(iso);
-		// ((ParallelGlass*) fDet->GetParallelWorld(0))->SetIsoCenter(iso);
-		((ParallelPhantom*) fDet->GetParallelWorld(0))->SetIsoCenter(iso);
-	}
-	else if (command == fTableRefCmd)
+	if (command == fTableRefCmd)
 	{
 		fDet->SetTableRefPos(fTableRefCmd->GetNew3VectorValue(newValue));
 	}
