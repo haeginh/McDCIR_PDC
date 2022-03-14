@@ -64,10 +64,14 @@ public:
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
 	{  				
+		G4GeometryManager::GetInstance()->OpenGeometry(worldPhysical);
+		
+		table_rot->set(G4RotationMatrix::IDENTITY.axisAngle());
 		table_rot->rotateZ(-table_pivot_angle);
+
 		Eigen::Rotation2Dd rot(table_pivot_angle);
 		Eigen::Translation2d trans0(table_rotation_center.x(), table_rotation_center.y());
-		auto T = rot.inverse()*trans0*rot*trans0.inverse()*Eigen::Translation2d(_table_trans.x(), _table_trans.y());
+		auto T = trans0*rot*trans0.inverse()*Eigen::Translation2d(_table_trans.x(), _table_trans.y());
 		Eigen::Vector2d transT = (T*Eigen::Translation2d(table_center.x(), table_center.y())).translation();
 		Eigen::Vector2d transC = (T*Eigen::Translation2d(curtain_center.x(), curtain_center.y())).translation();
 		Eigen::Vector2d transP = (T*Eigen::Translation2d(phantom_center.x(), phantom_center.y())).translation();
@@ -75,20 +79,8 @@ public:
 		pv_curtain->SetTranslation(G4ThreeVector(transC(0), transC(1), curtain_center.z()+_table_trans.z()));
 		pv_phantom->SetTranslation(G4ThreeVector(transP(0), transP(1), phantom_center.z()+_table_trans.z()));
 
-
-		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
-		// table_trans = _table_trans;
-		// G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
-		// if(table_pivot_angle==0) 
-		// {
-		// 	pv_frame->SetTranslation(frameOrigin);
-		// 	return;
-		// }
-
-		// frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
-		// frame_rotation_matrix->rotateZ(-table_pivot_angle);
-		// pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
-		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
+		G4GeometryManager::GetInstance()->CloseGeometry(false, false, worldPhysical);
+		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 
 	void UseCurtain(G4bool use = true)
