@@ -10,33 +10,15 @@
 /run/numberOfThreads 1
 
 # Initialize kernel
-/machine/tableRef 60 120 78.5 cm
-#/machine/isocenter 90 60 113.5 cm
 /run/initialize
 
 #/machine/removeDet
 #/machine/removeGlass
 /machine/useCurtain false
-/machine/tableTrans 0 0 14 cm
+/machine/tableTrans 5 10 5 cm
 
 #/phantom/data record.txt
 #/phantom/frame 51
 
-/run/beamOn 1000000000
-
-/beam/lift -14 cm
-/run/beamOn 1000000000
-
-/beam/lift 14 cm
-/run/beamOn 1000000000
-
-/beam/peak 100
-
-/run/beamOn 1000000000
-
-/beam/lift -14 cm
-/run/beamOn 1000000000
-
-/beam/lift 14 cm
-/run/beamOn 1000000000
-
+/beam/peak 80
+/run/beamOn 100000

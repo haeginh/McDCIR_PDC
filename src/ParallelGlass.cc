@@ -26,7 +26,6 @@
 // \author: Haegin Han
 //
 #include "ParallelGlass.hh"
-#include "TETParameterisation.hh"
 
 #include "G4Box.hh"
 #include "G4Tet.hh"
@@ -36,9 +35,9 @@
 #include "G4SystemOfUnits.hh"    
 #include "G4MultiFunctionalDetector.hh"
 #include "G4SDManager.hh"
-#include "TETParameterisation.hh"
-#include "TETPSEnergyDeposit.hh"
 #include "G4UImanager.hh"
+#include "G4VisAttributes.hh"
+#include "G4NistManager.hh"
 
 ParallelGlass
 ::ParallelGlass(G4String parallelWorldName, G4String _glassFile)
@@ -55,10 +54,10 @@ void ParallelGlass::Construct()
   if(fConstructed) return;
   fConstructed = true;
  
-  ifstream ifsNode(glassFile + ".node");
+  std::ifstream ifsNode(glassFile + ".node");
   G4int num, tmp;
   ifsNode>>num>>tmp>>tmp>>tmp;
-  vector<G4ThreeVector> nodes;
+  std::vector<G4ThreeVector> nodes;
   G4ThreeVector glassDim;
   for(G4int i=0;i<num;i++)
   {
@@ -75,16 +74,16 @@ void ParallelGlass::Construct()
   G4Box* glassSolid = new G4Box("glass", glassDim.x(), glassDim.y(), glassDim.z());
   lv_glass = new G4LogicalVolume(glassSolid, 0, "glassLV");
   pv_glass = new G4PVPlacement(new G4RotationMatrix(), G4ThreeVector(), lv_glass, "glassPV", GetWorld()->GetLogicalVolume(), false, 0);
-  G4VisAttributes* vis = new G4VisAttributes();
+  G4VisAttributes* vis = new G4VisAttributes;
   vis->SetForceWireframe(true);
   pv_glass->GetLogicalVolume()->SetVisAttributes(vis);
   pv_glass->SetTranslation(-isocenter);
 
-  ifstream ifsEle(glassFile + ".ele");
+  std::ifstream ifsEle(glassFile + ".ele");
   ifsEle>>num>>tmp>>tmp;
   G4int a, b, c, d;
   G4Material* lead = G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb");
-  G4VisAttributes* vis2 = new G4VisAttributes();
+  G4VisAttributes* vis2 = new G4VisAttributes;
   vis2->SetColor(G4Color(0., 1., 0., 0.2));
   for(G4int i=0;i<num;i++)
   {

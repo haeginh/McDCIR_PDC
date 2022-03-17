@@ -129,9 +129,9 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 {
 	Eigen::MatrixXd V;
 	G4cout<<"Read "+_patient+".node..."<<flush;
-	ifstream ifs("./phantoms/"+_patient+".node");
+	ifstream ifs("../phantoms/"+_patient+".node");
 	if(!ifs.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".node!"<<endl;
+		cout<<"there is no ../phantoms/"+_patient+".node!"<<endl;
 		exit(100);
 	}
 	int rowV, tmp;
@@ -159,9 +159,9 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 	
 	//read materials
 	G4cout<<"Read "+_patient+".material..."<<flush;
-	ifstream ifsMat("./phantoms/"+_patient+".material");
+	ifstream ifsMat("../phantoms/"+_patient+".material");
 	if(!ifsMat.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".material!"<<endl;
+		cout<<"there is no ../phantoms/"+_patient+".material!"<<endl;
 		exit(100);
 	}
 	map<int, G4Material*> matMap;
@@ -208,9 +208,9 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 
 	//construc tets
 	G4cout<<"Read "+_patient+".ele..."<<flush;
-	ifstream ifsEle("./phantoms/"+_patient+".ele");
+	ifstream ifsEle("../phantoms/"+_patient+".ele");
 	if(!ifsEle.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".ele!"<<endl;
+		cout<<"there is no ../phantoms/"+_patient+".ele!"<<endl;
 		exit(100);
 	}
 	int numT;

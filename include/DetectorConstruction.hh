@@ -42,9 +42,8 @@
 #include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
 #include "DetectorMessenger.hh"
-#include "ParallelPhantom.hh"
 #include "ParallelGlass.hh"
-#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {

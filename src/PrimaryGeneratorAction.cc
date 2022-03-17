@@ -87,7 +87,7 @@ G4ThreeVector PrimaryGeneratorAction::SampleRectangularBeamDirection()
 void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 {
 	G4String fileName(to_string(peakE) + ".spec");
-	G4String spectra("./spectra/" + fileName);
+	G4String spectra("../spectra/" + fileName);
 
 	G4cout << "Read x-ray spectra: " << spectra << G4endl;
 	ifstream ifs(spectra);
