@@ -5,7 +5,7 @@
 #include "DetectorConstruction.hh"
 #include "ParallelGlass.hh"
 #include "ParallelPhantom.hh"
-#include "FTFP_BERT.hh"
+#include "G4PhysListFactory.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4ParallelWorldPhysics.hh"
 #include "ActionInitialization.hh"
@@ -69,8 +69,9 @@ int main(int argc, char** argv)
 	det->SetPatientName("Patient_M_H175M83800_fixed");
 	// det->RegisterParallelWorld(new ParallelGlass("parallelGlass", "./phantoms/glassTet.1"));
 	det->RegisterParallelWorld(new ParallelPhantom("parallelPhantom", tetData));
-	runManager->SetUserInitialization(det);
-	G4VModularPhysicsList* physicsList = new FTFP_BERT;
+	runManager->SetUserInitialization(det);	
+	auto factory = new G4PhysListFactory();
+    G4VModularPhysicsList* physicsList = factory->GetReferencePhysList("FTFP_BERT_LIV");
 	// physicsList->RegisterPhysics(new G4StepLimiterPhysics());
 	// physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallelGlass", true));
 	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallelPhantom", true));
