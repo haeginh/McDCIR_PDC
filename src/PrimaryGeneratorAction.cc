@@ -29,18 +29,20 @@
 #include "PrimaryMessenger.hh" 
 
 PrimaryGeneratorAction::PrimaryGeneratorAction()
-	: G4VUserPrimaryGeneratorAction(), focalLength(810*mm)
+	: G4VUserPrimaryGeneratorAction(), focalLength(810 * mm)
 {
 	fPrimary = new G4ParticleGun();
 	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
 
-	FlatDetectorInitialization(DetectorZoomField::FD48, 119.5 * cm); // FD, SID
-	SetSourceEnergy(80);
+	FlatDetectorInitialization(DetectorZoomField::FD48, 100 * cm); // FD, SID
+	SetSourceEnergy(60);
 	// G4double carm_primary = 20 * deg;   // +LAO, -RAO
 	// G4double carm_secondary = 20 * deg; // +CAU, -CRA
 	// rotate.rotateY(carm_primary).rotateX(carm_secondary);
     rotate.set(G4RotationMatrix::IDENTITY.axisAngle());
-	G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -810 * mm);
+	G4ThreeVector focalSpot = rotate * (G4ThreeVector(0, 0, -focalLength));
+//	cout << rotate * (G4ThreeVector(0, 0, -focalLength)) << endl;
+//	cout << focalSpot << endl;
 	fPrimary->SetParticlePosition(focalSpot);
 
 	messenger = new PrimaryMessenger(this);
@@ -137,8 +139,8 @@ void PrimaryGeneratorAction::FlatDetectorInitialization(DetectorZoomField FD, G4
 	switch (FD)
 	{
 	case DetectorZoomField::FD48:
-		angle1 = atan((38 * cm) * 0.5 / SID);
-		angle2 = atan((30 * cm) * 0.5 / SID);
+		angle1 = atan((30 * cm) * 0.5 / SID);
+		angle2 = atan((38 * cm) * 0.5 / SID);
 		break;
 	case DetectorZoomField::FD42:
 		angle1 = atan((30 * cm) * 0.5 / SID);

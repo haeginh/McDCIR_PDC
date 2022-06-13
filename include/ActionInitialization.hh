@@ -32,20 +32,23 @@
 #include "DetectorConstruction.hh"
 #include "G4Timer.hh"
 #include "TETModelImport.hh"
+#include "WEBServerConnect.hh"
 
 class ActionInitialization : public G4VUserActionInitialization
 {
   public:
-    ActionInitialization(TETModelImport* _tetData, G4String outputFileName, G4Timer* initTimer);
+    ActionInitialization(TETModelImport* _tetData_doctor, G4String outputFileName, G4Timer* initTimer, WEBServerConnect* _serverConnect);
     virtual ~ActionInitialization();
 
     virtual void BuildForMaster() const;
     virtual void Build() const;
 
   private:
-    TETModelImport* tetData;
-    G4String        output;
-    G4Timer*        initTimer;
+    TETModelImport*   tetData_doctor;
+    // TETModelImport*   tetData_patient;
+    G4String          output;
+    G4Timer*          initTimer;
+    WEBServerConnect* serverConnect;
 };
 
 #endif

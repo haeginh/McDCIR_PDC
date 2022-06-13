@@ -27,26 +27,43 @@
 
 #include "TETModelImport.hh"
 
-TETModelImport::TETModelImport(G4String _phantomName)
+TETModelImport::TETModelImport(G4String _phantomName, G4UIExecutive* _ui)
 {
 	// set phantom name
 	phantomName = _phantomName;
+	ui = _ui;
 
 	G4cout << "================================================================================"<<G4endl;
 	G4cout << "\t" << phantomName << " was implemented in this CODE!!   "<< G4endl;
 	G4cout << "================================================================================"<<G4endl;
 
-	G4String materialFile =  phantomName + ".material";
 	G4String doseFile     =  phantomName + ".dose";
 	G4String boneFile     =  phantomName + ".RBMnBS";
 	G4String drfFile      =  phantomName + ".DRF";
+	G4String mtlFile      =  phantomName + ".mtl";
+	G4String materialFile =  phantomName + ".material";
 
-	animator = new PhantomAnimator(phantomName);
-	// animator->CalibrateTo("S_Moon");
+	POSE phantomPose;
+	if   (phantomName.find("RANDO") != string::npos) {
+		phantomPrefix = "patient_";
+		phantomPose = POSE::Standing;
+	}
+	else {
+		phantomPrefix = "doctor_";
+		phantomPose = POSE::Animating;
+	}
+	
+	animator = new PhantomAnimator(phantomName, phantomPose);
 	UpdateBBox();
-
 	ConstructTet();
-	// MaterialRead(materialFile);
+	// animator->CalibrateTo("S_Moon");
+	
+	DoseRead(doseFile);
+	MaterialRead(materialFile);
+	RBMBSRead(boneFile);
+	DRFRead(drfFile);
+	if (ui) ColourRead(mtlFile);
+
 	PrintMaterialInfomation();
 }
 
@@ -109,7 +126,35 @@ void TETModelImport::ConstructTet()
 		massMap[i] += 1.089 * (g/cm3) * volumeMap[i];
 	}
 
-	G4cout<<"G4Tet construction done...degen#: "<<degenCount<<G4endl;
+	G4cout<<"G4Tet construction done...degen #: "<<degenCount<<G4endl;
+}
+
+void TETModelImport::DoseRead(G4String doseFile){
+	//read dose file : PLEASE be careful not to include dose ID 0
+	std::ifstream ifs(doseFile);
+	if(!ifs.is_open()) {
+		// exception for the case when there is no *.material file
+		G4Exception("TETModelImport::DataRead","",FatalErrorInArgument,
+				G4String("      There is no " + doseFile ).c_str());
+	}
+	doseOrganized = true;
+
+	G4cout << "  Opening material file '" << doseFile << "'" <<G4endl;
+	G4String aLine;
+	while(!ifs.eof()){
+		getline(ifs, aLine);
+		if(aLine.empty()) break;
+
+		std::stringstream ss(aLine);
+		G4int doseID; ss>>doseID;
+		G4String name; ss>>name; doseName[doseID] = name;
+		G4int organID;
+		while(ss>>organID){
+			if(organ2dose.find(organID)==organ2dose.end()) organ2dose[organID] = {doseID};
+			else	                                       organ2dose[organID].push_back(doseID);
+		}
+	}
+	ifs.close();
 }
 
 void TETModelImport::MaterialRead(G4String materialFile)
@@ -146,7 +191,7 @@ void TETModelImport::MaterialRead(G4String materialFile)
 		token = std::strtok(read_data,"m");
 		G4int matID = std::atoi(token);        //ex) m'10'
         materialIndex.push_back(matID);
-		organNameMap[matID]= MaterialName;
+		organNameMap[matID]= phantomPrefix + MaterialName;
 		densityMap[matID] = density*g/cm3;
 
 		for(G4int i=0 ;  ; i++)
@@ -177,6 +222,19 @@ void TETModelImport::MaterialRead(G4String materialFile)
 		}
 		materialMap[idx]=mat;
 		massMap[idx]=densityMap[idx]*volumeMap[idx];
+	}
+
+	if (DoseWasOrganized())
+	{
+		for (auto dm : doseName)
+		{
+			doseMassMap[dm.first] = 0;
+		}
+		for (auto od : organ2dose)
+		{
+			for (auto doseID : od.second)
+				doseMassMap[doseID] += massMap[od.first];
+		}
 	}
 }
 
@@ -261,7 +319,10 @@ void TETModelImport::ColourRead(G4String mtlFile)
 		}
 		else if(dump=="Kd"){
 			ifpColour>>rgb;
-			colourMap[organID] = G4Colour(rgb.getX(), rgb.getY(), rgb.getZ(), 0.);
+			if (organID == 12200 || organID == 12201) 
+				colourMap[organID] = G4Colour(rgb.getX(), rgb.getY(), rgb.getZ(), 0.15);
+			else
+				colourMap[organID] = G4Colour(rgb.getX(), rgb.getY(), rgb.getZ(), 1.0);
 		}
 	}
 	ifpColour.close();
@@ -287,27 +348,80 @@ void TETModelImport::PrintMaterialInfomation()
 	std::map<G4int, G4Material*>::iterator matIter;
 	G4cout<<std::setiosflags(std::ios::fixed);
 	G4cout.precision(3);
-	// for(matIter=materialMap.begin(); matIter!=materialMap.end();matIter++)
-	// {
-	// 	G4int idx = matIter->first;
-
-	// 	G4cout << std::setw(9)  << idx                         // organ ID
-	// 		   << std::setw(11) << numTetMap[idx]              // # of tetrahedrons
-	// 		   << std::setw(11) << volumeMap[idx]/cm3          // organ volume
-	// 		   << std::setw(11) << materialMap[idx]
-	// 		                       ->GetDensity()/(g/cm3)      // organ density
-	// 		   << std::setw(11) << massMap[idx]/g              // organ mass
-	// 		   << "\t"<<materialMap[idx]->GetName() << G4endl; // organ name
-	// }
-
-	for(auto iter:massMap)
+	for(matIter=materialMap.begin(); matIter!=materialMap.end();matIter++)
 	{
-		G4int idx = iter.first;
+		G4int idx = matIter->first;
+
 		G4cout << std::setw(9)  << idx                         // organ ID
 			   << std::setw(11) << numTetMap[idx]              // # of tetrahedrons
 			   << std::setw(11) << volumeMap[idx]/cm3          // organ volume
-			   << std::setw(11) << 1.089      // organ density
-			   << std::setw(11) << massMap[idx]/mg              // organ mass
-			   << "\tskin" << G4endl; // organ name 
+			   << std::setw(11) << materialMap[idx]
+			                       ->GetDensity()/(g/cm3)      // organ density
+			   << std::setw(11) << massMap[idx]/g              // organ mass
+			   << "\t"<<materialMap[idx]->GetName() << G4endl; // organ name
 	}
+}
+
+vector<tuple<int,int,int>> TETModelImport::GetOrganSurfaceVec(int organID)
+{
+	MatrixXi T = animator->GetT();
+	MatrixXd V = animator->GetU();
+
+    vector<pair<tuple<int,int,int>, bool>> facePool;
+    for (size_t i=0; i<T.rows(); i++) {
+        if (T(i,4) != organID) continue;
+        vector<int> ele = { T(i,0), T(i,1), T(i,2), T(i,3) };
+        sort(ele.begin(), ele.end());
+
+        Vector3d a = Vector3d(V(ele[0],0), V(ele[0],1), V(ele[0],2));
+        Vector3d b = Vector3d(V(ele[1],0), V(ele[1],1), V(ele[1],2));
+        Vector3d c = Vector3d(V(ele[2],0), V(ele[2],1), V(ele[2],2));
+        Vector3d d = Vector3d(V(ele[3],0), V(ele[3],1), V(ele[3],2));
+
+        Vector3d baryCenter = (a+b+c+d) * 0.25;
+        // face 1: a,b,c
+        Vector3d face1_normal = (b-a).cross(c-a);
+        double face1_chk = face1_normal.dot(baryCenter-a);
+        // face 2: a,c,d
+        Vector3d face2_normal = (b-a).cross(d-a);
+        double face2_chk = face2_normal.dot(baryCenter-a);
+        // face 3: a,b,d
+        Vector3d face3_normal = (c-a).cross(d-a);
+        double face3_chk = face3_normal.dot(baryCenter-a);
+        // face 4: b,c,d
+        Vector3d face4_normal = (c-b).cross(d-b);
+        double face4_chk = face4_normal.dot(baryCenter-b);
+        
+        if (face1_chk > 0) facePool.push_back(make_pair( make_tuple(ele[0], ele[1], ele[2]) , false ) );
+        else               facePool.push_back(make_pair( make_tuple(ele[0], ele[1], ele[2]) , true  ) );
+        if (face2_chk > 0) facePool.push_back(make_pair( make_tuple(ele[0], ele[1], ele[3]) , false ) );
+        else               facePool.push_back(make_pair( make_tuple(ele[0], ele[1], ele[3]) , true  ) );
+        if (face3_chk > 0) facePool.push_back(make_pair( make_tuple(ele[0], ele[2], ele[3]) , false ) );
+        else               facePool.push_back(make_pair( make_tuple(ele[0], ele[2], ele[3]) , true  ) );
+        if (face4_chk > 0) facePool.push_back(make_pair( make_tuple(ele[1], ele[2], ele[3]) , false ) );
+        else               facePool.push_back(make_pair( make_tuple(ele[1], ele[2], ele[3]) , true  ) );
+    }
+    sort(facePool.begin(), facePool.end());
+
+    vector<tuple<int,int,int>> facePick;
+    for (size_t i=0; i<facePool.size()-1; i++) {
+        if(facePool[i].first == facePool[i+1].first) {
+            i++; continue;
+        }
+        tuple<int,int,int> face = facePool[i].first;
+        if (facePool[i].second == false) {
+            face = make_tuple(get<0>(facePool[i].first), get<2>(facePool[i].first), get<1>(facePool[i].first));
+        }
+        facePick.push_back(face);
+
+        if (i==facePool.size() - 2) {
+            face = facePool[i+1].first;
+            if (facePool[i+1].second == false) {
+                face = make_tuple(get<0>(facePool[i+1].first), get<2>(facePool[i+1].first), get<1>(facePool[i+1].first));
+            }
+            facePick.push_back(face);
+        }
+    }
+
+	return facePick;
 }

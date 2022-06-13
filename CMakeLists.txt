@@ -1,19 +1,20 @@
 # Set the minimum required version of cmake for a project.
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 2.8...3.13)
 
 # Set Variables
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_BUILD_TYPE Release)
 set(PROJECT_NAME "calculator")
 
 # Project
 PROJECT(${PROJECT_NAME} CXX)
 
 
-#SET(MARIADB_INCLUDE_DIR /usr/local/include/mariadb/)
-#SET(MARIADB_LIB_DIR /usr/local/lib/mariadb/)
-#SET(LIBSSH_INCLUDE_DIR /usr/local/include/libssh/)
+SET(MARIADB_INCLUDE_DIR /usr/local/include/mariadb/)
+SET(MARIADB_LIB_DIR /usr/local/lib/mariadb/)
+SET(LIBSSH_INCLUDE_DIR /usr/local/include/libssh/)
 
 #----------------------------------------------------------------------------
 # Find Geant4 package, activating all available UI and Vis drivers by default
@@ -58,30 +59,31 @@ endif()
 
 
 # MariaDB
-#FIND_LIBRARY(MARIADB_LIB
-#        NAMES mariadb
-#        PATHS ${MARIADB_LIB_DIR}
-#        )
+FIND_LIBRARY(MARIADB_LIB
+       NAMES mariadb
+       PATHS ${MARIADB_LIB_DIR}
+       )
 
 # libssh
-#find_package(libssh REQUIRED)
-#if (NOT TARGET ssh)
-#     add_library(ssh SHARED IMPORTED)
-#     set_target_properties(ssh
-#                           PROPERTIES
-#                           IMPORTED_LOCATION "${LIBSSH_LIBRARIES}"
-#                           INTERFACE_INCLUDE_DIRECTORIES "${LIBSSH_INCLUDE_DIR}")
-#endif()
+find_package(libssh REQUIRED)
+if (NOT TARGET ssh)
+    add_library(ssh SHARED IMPORTED)
+    set_target_properties(ssh
+                          PROPERTIES
+                          IMPORTED_LOCATION "${LIBSSH_LIBRARIES}"
+                          INTERFACE_INCLUDE_DIRECTORIES "${LIBSSH_INCLUDE_DIR}")
+endif()
 
 # The main program
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 add_executable(${PROJECT_NAME} calculator.cpp ${sources} ${headers})
 
 # Link
 target_link_libraries( ${PROJECT_NAME} 
-	#${MARIADB_LIB} 
-	#ssh 
-	#${LIBSSH_LIB} 
+	${MARIADB_LIB} 
+	ssh 
+	${LIBSSH_LIB} 
 	${Geant4_LIBRARIES}
 	igl::core
 	igl::tetgen
-	)
+)

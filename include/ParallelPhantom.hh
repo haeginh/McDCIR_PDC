@@ -40,23 +40,40 @@ class ParallelPhantomMessenger;
 class ParallelPhantom : public G4VUserParallelWorld
 {
 public:
-  ParallelPhantom(G4String parallelWorldName, TETModelImport* _tetData);
+  ParallelPhantom(G4String parallelWorldName, TETModelImport* _tetData, G4UIExecutive* _ui);
   virtual ~ParallelPhantom();
 
-public:
   virtual void Construct();
   virtual void ConstructSD();
-  void Deform(RotationList vQ, Vector3d root);
+  
+  void Deform(RotationList vQ, Vector3d root);  
+
+private:
+  
+  void VisualizePhantom();
+  G4ThreeVector RowToG4Vec(const RowVector3d& row){return G4ThreeVector(row(0), row(1), row(2));}
 
 private:
   G4bool fConstructed;
   ParallelPhantomMessenger* messenger;
 
-  // Radiologist
+  // World
+  G4LogicalVolume*   lv_world;
+
+  // Doctor
   TETModelImport*    tetData;
   G4ThreeVector      doctor_translation;
-  G4LogicalVolume*   lv_tet;
+  G4LogicalVolume*   lv_dTet;
   G4VPhysicalVolume* pv_doctor;
+
+  // Vis
+  G4UIExecutive* ui;
+	G4bool isInstall;
+	map<G4int, G4Material*> materialMap;
+	map<G4int, G4int>       numTetMap;
+	map<G4int, G4LogicalVolume*> lvTessMap;
+	map<G4int, G4Colour>    colourMap;
+	map<G4int, G4PVPlacement*> pvTessMap;
 };
 
 #endif

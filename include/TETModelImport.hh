@@ -70,10 +70,16 @@ typedef std::tuple<G4int, G4int, G4int> IJK;
 class TETModelImport
 {
 public:
-	TETModelImport(G4String phantomName);
+	TETModelImport(G4String phantomName, G4UIExecutive* ui);
     virtual ~TETModelImport();
 
 	// get methods
+	G4bool        DoseWasOrganized()         { return doseOrganized; }
+    std::map<G4int, std::vector<G4int>>
+				  GetDoseMap()               { return organ2dose;}
+    G4String      GetDoseName(G4int doseID)  { return doseName[doseID];}
+	std::map<G4int, G4double> GetDoseMassMap(){ return doseMassMap; }
+
     G4String      GetPhantomName()           { return phantomName; }
 	G4Material*   GetMaterial(G4int idx)     { return materialMap[idx];}
 	size_t        GetNumTetrahedron()        { return tetVector.size();}
@@ -91,11 +97,14 @@ public:
 	G4double GetBSDRF (G4int idx, G4int eIdx){ return bsDRF[idx][eIdx];}
 
     void Deform(RotationList vQ, Vector3d root);
+	vector<tuple<int,int,int>> GetOrganSurfaceVec(int organID);
+	std::map<G4int, G4Material*> GetMaterialMap() { return materialMap; }
+	std::map<G4int, G4int>       GetNumTetMap()   { return numTetMap; }
+	PhantomAnimator* GetAnimator() { return animator; }
 
 private:
-	// private methods
+	void ConstructTet();
 	void DoseRead(G4String);
-    void ConstructTet();
     void MaterialRead(G4String);
 	void RBMBSRead(G4String);
 	void DRFRead(G4String);
@@ -103,11 +112,11 @@ private:
 	void PrintMaterialInfomation();
 
 	G4int GetID(G4String str) {
-		G4String strCut = str.substr(2,str.size()-2);
+		// G4String strCut = str.substr(2,str.size()-2);
 		size_t pos = 0;
 		G4String token;
-		while ((pos = strCut.find("_")) != std::string::npos) {
-			token = strCut.substr(0, pos);
+		while ((pos = str.find("_")) != std::string::npos) {
+			token = str.substr(0, pos);
 			break;
 		}
 		return atoi(token.c_str());
@@ -126,6 +135,11 @@ private:
 
 	G4ThreeVector boundingBox_Min;
 	G4ThreeVector boundingBox_Max;
+
+	std::map<G4int, std::vector<G4int>>   organ2dose;
+	std::map<G4int, G4String>  doseName;
+	std::map<G4int, G4double>  doseMassMap;
+	G4bool                     doseOrganized;
 
 	std::vector<G4Tet*>        tetVector;
 	std::vector<G4int>         materialVector;
@@ -146,6 +160,9 @@ private:
 
 	// Phantom Animator
 	PhantomAnimator* animator;
+
+	G4String phantomPrefix;
+	G4UIExecutive* ui;
 };
 
 #endif

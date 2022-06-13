@@ -32,22 +32,47 @@
 #include "G4Event.hh"
 #include "G4THitsMap.hh"
 #include "G4SDManager.hh"
+#include "TETModelImport.hh"
 
-typedef std::map<G4int, std::pair<G4double, G4double>> EDEPMAP;
+using namespace std;
+
+typedef map<G4int, std::pair<G4double, G4double>> HITSMAP;
 
 class Run : public G4Run
 {
 public:
-	Run();
+	Run(TETModelImport* _tetData_doctor);
 	virtual ~Run();
 
 	virtual void RecordEvent(const G4Event*);
     virtual void Merge(const G4Run*);
 
-    EDEPMAP* GetEdepMap() {return &edepMap;};
+	HITSMAP* GetdoctorEdepMap()  { return &doctor_edepMap; }
 
 private:
-	EDEPMAP edepMap;
+	void StackHits(G4HCofThisEvent* HCE, G4int fCollID_DRF, G4int fCollID_eDep ,G4bool doseOrganized, 
+				   map<G4int, G4double> rbmFactor, map<G4int, G4double> bsFactor, map<G4int, vector<G4int>> organ2dose, 
+				   HITSMAP &edepMap);
+
+
+private:
+	// TETModelImport* tetData_patient;
+	// G4int fCollID_patient_eDep;
+	// G4int fCollID_patient_DRF;
+	// map<G4int, vector<G4int>>  patient_organ2dose;
+	// map<G4int, G4double>  patient_rbmFactor;
+	// map<G4int, G4double>  patient_bsFactor;
+	// G4bool patient_doseOrganized;
+	// HITSMAP patient_edepMap;
+
+	TETModelImport* tetData_doctor;
+	G4int fCollID_doctor_eDep;
+	G4int fCollID_doctor_DRF;
+	map<G4int, vector<G4int>>  doctor_organ2dose;
+	map<G4int, G4double>  doctor_rbmFactor;
+	map<G4int, G4double>  doctor_bsFactor;
+	G4bool doctor_doseOrganized;
+	HITSMAP doctor_edepMap;
 };
 
 #endif

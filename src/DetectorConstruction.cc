@@ -26,28 +26,28 @@
 //
 
 #include "DetectorConstruction.hh"
+#include "TETParameterisation.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4VisAttributes.hh"
 #include "G4Tet.hh"
 #include "Eigen/Core"
+#include "G4Trd.hh"
+#include "G4EllipticalTube.hh"
+#include "G4SubtractionSolid.hh"
+#include "G4UnionSolid.hh"
+#include "G4MultiFunctionalDetector.hh"
+#include "TETPSEnergyDeposit.hh"
+#include "G4SDManager.hh"
+#include "TETDRFScorer.hh"
 
 using namespace std;
 
-DetectorConstruction::DetectorConstruction()
-:worldLogical(0) ,worldPhysical(0), table_rotation_center(-50.*mm, -1625*mm, 0.), head_margin(5.*cm), curtain_margin(10.*cm)
+DetectorConstruction::DetectorConstruction(TETModelImport* _tetData, G4UIExecutive* _ui)
+:lv_world(0) ,pv_world(0), table_rotation_center(-50.*mm, -1625*mm, 0.), head_margin(5.*cm), curtain_margin(10.*cm), tetData(_tetData), ui(_ui)
+,isInstall(false)
 {
 	SetTableSize(G4ThreeVector(55*cm, 290*cm, 1.43*mm));
 	SetTableRefPos(G4ThreeVector(-327, 398, -175)*mm);
-	// table_rotation_center = table_default_trans;
-	// Operating Table (w/ patient, curtain)
-	// table_ocr = G4ThreeVector(-280,-960,-10); // Initial position
-	// table_trans = G4ThreeVector(-80*mm, 20*mm -10*mm);     // Operating position
-	// table_pivot_angle = 0 * deg;              // Z axis rotation
-	// table_rotation_center = G4ThreeVector(1200*mm, 0*mm, 820*mm);
-
-	// C-arm det
-	// carm_primary   = 20 * deg;   // +LAO, -RAO
-	// carm_secondary = 20 * deg;   // +CAU, -CRA
 
 	messenger = new DetectorMessenger(this);
 }
@@ -59,229 +59,296 @@ DetectorConstruction::~DetectorConstruction()
 
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
-	// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
+	cout << "Detector Construct()" << endl;
 	SetupWorldGeometry();
 	ConstructOperatingTable();
-	// ConstructPbGlass();
-	// ConstructCarmDet();
-	return worldPhysical;
+	ConstructXrayTube();
+	ConstructFlatPanelDetector();
+	ConstructPbCurtain();
+	ConstructPbGlass();
+
+	if (tetData == nullptr)
+		return pv_world;
+
+	if(!ui) {
+		ConstructPatient(patient);
+	}
+	else {
+		materialMap = tetData->GetMaterialMap();
+		numTetMap   = tetData->GetNumTetMap();
+		colourMap   = tetData->GetColourMap();
+		VisualizePhantom();
+	}
+	return pv_world;
 }
 
 void DetectorConstruction::SetupWorldGeometry()
 {
-	// Define the world box (size: 10*10*5 m3)
+	// Define the world box (size: 10 * 10 * 5 m3)
     G4double worldHalfX = 5. * m;
     G4double worldHalfY = 5. * m;
     G4double worldHalfZ = 2.5 * m;
 
 	G4VSolid* worldSolid = new G4Box("worldSolid", worldHalfX, worldHalfY, worldHalfZ);
-	worldLogical = new G4LogicalVolume(worldSolid,G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"),"worldLogical");
-	worldPhysical = new G4PVPlacement(0,G4ThreeVector(), worldLogical,"worldPhysical", 0, false,0,false);
-	worldLogical->SetVisAttributes(G4VisAttributes::GetInvisible());
-	// G4VisAttributes* va_World = new G4VisAttributes(G4Colour(1.0, 1.0, 1.0));
-	// va_World->SetForceWireframe(true);
-	// worldLogical->SetVisAttributes(va_World);
+	lv_world = new G4LogicalVolume(worldSolid,G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"),"lv_world");
+	pv_world = new G4PVPlacement(0,G4ThreeVector(), lv_world,"pv_world", 0, false,0,false);
+	lv_world->SetVisAttributes(G4VisAttributes::GetInvisible());
+	G4VisAttributes* va_World = new G4VisAttributes(G4Colour(1.0, 1.0, 1.0));
+	va_World->SetForceWireframe(true);
+	lv_world->SetVisAttributes(va_World);
 
-	// Define floor
-	// G4double floorZ = 0 * cm;
-	// G4Material* concrete = G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE");
-	// G4Box* floor = new G4Box("floor", worldHalfX, worldHalfY, (floorZ+worldHalfZ)*0.5);
-	// G4LogicalVolume* lv_floor = new G4LogicalVolume(floor, concrete, "lv_floor");
-	// new G4PVPlacement(0, G4ThreeVector(0,0,(-worldHalfZ)+(floorZ+worldHalfZ)*0.5), lv_floor, "pv_floor", worldLogical,0,0);
+	// // Room
+	// G4VisAttributes* vis_room  = new G4VisAttributes(G4Colour(0.8,0.8,0.8,0.2));
+	// vis_room->SetForceAuxEdgeVisible(true);
 
-	// G4VisAttributes* vis_floor  = new G4VisAttributes(G4Colour(0.8,0.8,0.8,0.5));
-	// vis_floor->SetForceAuxEdgeVisible();
-	// lv_floor->SetVisAttributes(vis_floor);
+	// // Define floor
+	// G4double zMargin = 0. * cm;
+	// G4VSolid* sol_floor = new G4Box("sol_floor", worldHalfX, worldHalfY, 0.5*(worldHalfZ-zMargin));
+	// G4LogicalVolume* lv_floor = new G4LogicalVolume(sol_floor, G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE"), "lv_floor");
+	// lv_floor->SetVisAttributes(vis_room);
+	// new G4PVPlacement(0, G4ThreeVector(0.,0.,-((G4Box*)sol_floor)->GetZHalfLength()-zMargin), lv_floor, "pv_floor", lv_world, 0, 0 );
+
+	// // Ceiling
+	// G4double wall_halfThickness = 0.25 * m;
+	// G4VSolid* sol_ceiling = new G4Box("sol_ceiling", worldHalfX, worldHalfY, wall_halfThickness);
+	// G4LogicalVolume* lv_ceiling = new G4LogicalVolume(sol_ceiling, G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE"), "lv_ceiling");
+	// lv_ceiling->SetVisAttributes(vis_room);
+	// new G4PVPlacement(0, G4ThreeVector(0.,0.,worldHalfZ-((G4Box*)sol_ceiling)->GetZHalfLength()), lv_ceiling, "pv_ceiling", lv_world, 0, 0 );
+
+	// // Wall
+	// G4VSolid* sol_wall = new G4Box("sol_wall", wall_halfThickness, (worldHalfY-wall_halfThickness), worldHalfZ-((G4Box*)sol_floor)->GetZHalfLength()-((G4Box*)sol_ceiling)->GetZHalfLength());
+	// G4LogicalVolume* lv_wall = new G4LogicalVolume(sol_wall, G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE"), "lv_wall");
+	// lv_wall->SetVisAttributes(vis_room);
+	// new G4PVPlacement(0, G4ThreeVector(-worldHalfX+wall_halfThickness, wall_halfThickness,((G4Box*)sol_wall)->GetZHalfLength()-zMargin), lv_wall, "pv_wall1", lv_world, 0, 0);
+	// new G4PVPlacement(0, G4ThreeVector(+worldHalfX-wall_halfThickness, -wall_halfThickness,((G4Box*)sol_wall)->GetZHalfLength()-zMargin), lv_wall, "pv_wall2", lv_world, 0, 0);
+	// new G4PVPlacement(new G4RotationMatrix(0,0,90*deg), G4ThreeVector(wall_halfThickness, +worldHalfY-wall_halfThickness,((G4Box*)sol_wall)->GetZHalfLength()-zMargin), lv_wall, "pv_wall3", lv_world, 0, 0);
+	// new G4PVPlacement(new G4RotationMatrix(0,0,90*deg), G4ThreeVector(-wall_halfThickness, -worldHalfY+wall_halfThickness,((G4Box*)sol_wall)->GetZHalfLength()-zMargin), lv_wall, "pv_wall4", lv_world, 0, 0);
 }
 
 
 #include "G4GeometryManager.hh"
 void DetectorConstruction::ConstructOperatingTable()
 {
-	table_rot = new G4RotationMatrix;
-
 	// Operating table
 	G4Box* table = new G4Box("sol_table", table_half_size.x(), table_half_size.y(), table_half_size.z());
 	G4LogicalVolume* lv_table = new G4LogicalVolume(table, G4NistManager::Instance()->FindOrBuildMaterial("G4_Al"), "lv_table");
-	pv_table = new G4PVPlacement(table_rot, table_center, lv_table, "pv_table", worldLogical, false, 1);
-	lv_table->SetVisAttributes( new G4VisAttributes(G4Colour(1.,1.,0.)));
+	lv_table->SetVisAttributes( new G4VisAttributes(G4Colour(0.2,0.2,0.2)) );
+	G4Box* mattress = new G4Box("sol_mattress", table_half_size.x(), table_half_size.y(), 7.*cm * 0.5);
 
-	// phantom box
-	G4LogicalVolume* lv_phantomBox = ConstructPatient(patient);
-	lv_phantomBox->SetVisAttributes(G4VisAttributes::GetInvisible());
-	phantom_center = table_center + 
-	                        G4ThreeVector(0., table_half_size.y()-((G4Box*) lv_phantomBox->GetSolid())->GetYHalfLength(),
-							                  table_half_size.z() + ((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength());
-	pv_phantom = new G4PVPlacement(table_rot, phantom_center,lv_phantomBox, "phantom box", worldLogical, false, 0);
+	G4Material* viscoelastic_foam = new G4Material("viscoelastic_foam", 57*kg/m3, G4NistManager::Instance()->FindOrBuildMaterial("G4_C"), kStateSolid, NTP_Temperature, STP_Pressure);
+	G4LogicalVolume* lv_mattress = new G4LogicalVolume(mattress, viscoelastic_foam, "lv_mattress");
+	
+	lv_mattress->SetVisAttributes( new G4VisAttributes(G4Colour(1.,1.,0.)) );
+	
+	
+	pv_table = new G4PVPlacement(0, G4ThreeVector(0, -851.72236, -251.1489
+									-(G4double)(table)->GetZHalfLength()
+									-(G4double)(mattress)->GetZHalfLength()), 	
+									lv_table, "pv_table", lv_world, false, 0);
+	new G4PVPlacement(0, G4ThreeVector(0, -851.72236, -251.1489), lv_mattress, "pv_table", lv_world, false, 0);
 
-	// Pb Curtain - lead equivalence 0.5 mm Pb
-	G4ThreeVector curtainHalfSize(0.25*mm, 250*mm, 200*mm);
-	G4Box* curtain = new G4Box("sol_curtain", curtainHalfSize.x(), curtainHalfSize.y(), curtainHalfSize.z());
-	curtain_center.setX(table_center.x() - table_half_size.x() - curtainHalfSize.x());
-	curtain_center.setY(table_center.y() + table_half_size.y() - curtain_margin - curtainHalfSize.y());
-	curtain_center.setZ(table_center.z() -table_half_size.z() - curtainHalfSize.z());
-	lv_curtain = new G4LogicalVolume(curtain, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_curtain");
-	pv_curtain = new G4PVPlacement(table_rot, curtain_center, lv_curtain, "pv_curtain", worldLogical, false, 1);
-	lv_curtain->SetVisAttributes( new G4VisAttributes(G4Colour(0.,0.,1.,0.8)) );
+
+	// table_rot = new G4RotationMatrix;
+
+	// // Operating table
+	// G4Box* table = new G4Box("sol_table", table_half_size.x(), table_half_size.y(), table_half_size.z());
+	// G4LogicalVolume* lv_table = new G4LogicalVolume(table, G4NistManager::Instance()->FindOrBuildMaterial("G4_Al"), "lv_table");
+	// pv_table = new G4PVPlacement(table_rot, table_center, lv_table, "pv_table", lv_world, false, 1);
+	// lv_table->SetVisAttributes( new G4VisAttributes(G4Colour(1.,1.,0.)));
+
+	// // phantom box
+	// G4LogicalVolume* lv_phantomBox = ConstructPatient(patient);
+	// lv_phantomBox->SetVisAttributes(G4VisAttributes::GetInvisible());
+	// phantom_center = table_center + 
+	//                         G4ThreeVector(0., table_half_size.y()-((G4Box*) lv_phantomBox->GetSolid())->GetYHalfLength(),
+	// 						                  table_half_size.z() + ((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength());
+	// pv_phantom = new G4PVPlacement(table_rot, phantom_center,lv_phantomBox, "phantom box", lv_world, false, 0);
+
+	// // Pb Curtain - lead equivalence 0.5 mm Pb
+	// G4ThreeVector curtainHalfSize(0.25*mm, 250*mm, 200*mm);
+	// G4Box* curtain = new G4Box("sol_curtain", curtainHalfSize.x(), curtainHalfSize.y(), curtainHalfSize.z());
+	// curtain_center.setX(table_center.x() - table_half_size.x() - curtainHalfSize.x());
+	// curtain_center.setY(table_center.y() + table_half_size.y() - curtain_margin - curtainHalfSize.y());
+	// curtain_center.setZ(table_center.z() -table_half_size.z() - curtainHalfSize.z());
+	// lv_curtain = new G4LogicalVolume(curtain, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_curtain");
+	// pv_curtain = new G4PVPlacement(table_rot, curtain_center, lv_curtain, "pv_curtain", lv_world, false, 1);
+	// lv_curtain->SetVisAttributes( new G4VisAttributes(G4Colour(0.,0.,1.,0.8)) );
 }
 
 G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 {
-	Eigen::MatrixXd V;
-	G4cout<<"Read "+_patient+".node..."<<flush;
-	ifstream ifs("./phantoms/"+_patient+".node");
-	if(!ifs.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".node!"<<endl;
-		exit(100);
-	}
-	int rowV, tmp;
-	ifs>>rowV>>tmp>>tmp>>tmp;
-	V.resize(rowV, 3);
-	for(int i=0;i<rowV;i++)
-	{
-		G4double x, y, z;
-		ifs>>tmp>>x>>y>>z;
-		V.row(i) = Eigen::RowVector3d(x,y,z)*cm;
-	}
-	ifs.close();
-	G4cout<<"done"<<G4endl;
+	G4ThreeVector center = (tetData->GetPhantomBoxMax() + tetData->GetPhantomBoxMin())*0.5;
+	G4ThreeVector halfSize = (tetData->GetPhantomBoxMax() - tetData->GetPhantomBoxMin()) * 0.5 + G4ThreeVector(1.,1.,1.) * cm;
+	G4VSolid* sol_patientBox = new G4Box("sol_patientBox", halfSize.x(), halfSize.y(), halfSize.z());
+	G4LogicalVolume* lv_patientBox = new G4LogicalVolume(sol_patientBox, G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"), "lv_patientBox");
+	G4VisAttributes* va_patientBox = new G4VisAttributes();
+	va_patientBox->SetForceWireframe(true);
+	lv_patientBox->SetVisAttributes(va_patientBox);
 
-	//move the bbox center to the origin
-	Eigen::RowVector3d max= V.colwise().maxCoeff();
-	Eigen::RowVector3d min= V.colwise().minCoeff();
-	G4cout<<-(max+min)*0.5/cm <<endl;
-	V = V.rowwise()-(max+min)*0.5;
+	pv_patient = new G4PVPlacement(0,center,lv_patientBox,"lv_patientBox",lv_world,false,0);
 
-	//set the phantom box with no margin
-	Eigen::RowVector3d hlafSize = (max-min)*0.5;
-	G4VSolid* phantomBox = new G4Box("patientBox", hlafSize.x(), hlafSize.y(), hlafSize.z());
-	G4LogicalVolume* lv_phantomBox = new G4LogicalVolume(phantomBox, G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"), "patientBox");
-	
-	//read materials
-	G4cout<<"Read "+_patient+".material..."<<flush;
-	ifstream ifsMat("./phantoms/"+_patient+".material");
-	if(!ifsMat.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".material!"<<endl;
-		exit(100);
-	}
-	map<int, G4Material*> matMap;
-	G4Element *elH = new G4Element("TS_H_of_Water", "H", 1., 1.01*g/mole);
-	while(!ifsMat.eof())
-	{
-		G4String line, first;
-		getline(ifsMat, line);
-		stringstream ss(line);
-		ss>>first;
-		if(first=="C")
-		{
-			G4String name, tmp1, idStr;
-			G4double density;
-			ss >> name >> density >> tmp1;
-			ifsMat >> idStr;
-			map<int, double> composition;
-			while(1)
-			{
-				G4String tmp2;
-				ifsMat>>tmp2;
-				if(tmp2.empty()||tmp2=="C") break;
-				G4double fraction;
-				ifsMat>>fraction;
-				composition[atoi(tmp2.c_str())/1000] = -fraction;
-			}
-			G4Material* mat = new G4Material(name, density*g/cm3, composition.size());
-			for(auto iter:composition)
-			{
-				if(iter.first==1) mat->AddElement(elH, iter.second);
-				else mat->AddElement(G4NistManager::Instance()->FindOrBuildElement(iter.first), iter.second);
-			}
-			G4int idx = atoi(idStr.substr(1, idStr.length()-1).c_str());
-			if(matMap.find(idx)!= matMap.end())
-			{
-				G4cerr<<"There is duplicated material #"<<idx<<G4endl;
-				exit(100);
-			}
-			matMap[atoi(idStr.substr(1, idStr.length()-1).c_str())] = mat;
-		}
-	}
-	ifsMat.close();
-	G4cout<<"done"<<G4endl;
+	G4VSolid* sol_tet = new G4Tet("sol_tet", 
+								  G4ThreeVector(0),
+								  G4ThreeVector(1,0,0),
+								  G4ThreeVector(0,1,0),
+								  G4ThreeVector(0,0,1));
+	lv_pTet = new G4LogicalVolume(sol_tet, G4NistManager::Instance()->FindOrBuildMaterial("G4_Galactic"), "lv_pTet");
+	lv_pTet->SetVisAttributes(G4VisAttributes::GetInvisible());
+	new G4PVParameterised("pv_patient", lv_pTet, lv_patientBox, kUndefined, tetData->GetNumTetrahedron(), new TETParameterisation(tetData));
 
-	//construc tets
-	G4cout<<"Read "+_patient+".ele..."<<flush;
-	ifstream ifsEle("./phantoms/"+_patient+".ele");
-	if(!ifsEle.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".ele!"<<endl;
-		exit(100);
-	}
-	int numT;
-	ifsEle>>numT>>tmp>>tmp;
-	map<int, double> volMap;
-	map<int, int> numMap;
-	// G4Material* tissue = G4NistManager::Instance()->FindOrBuildMaterial("G4_TISSUE_SOFT_ICRP");
-	for(int i=0;i<numT;i++)
-	{
-		int a, b, c, d, id;
-		ifsEle>>tmp>>a>>b>>c>>d>>id;
-		G4VSolid* tet = new G4Tet("tet", G4ThreeVector(V(a,0),V(a,1),V(a,2)),
-		                                 G4ThreeVector(V(b,0),V(b,1),V(b,2)),
-										 G4ThreeVector(V(c,0),V(c,1),V(c,2)),
-										 G4ThreeVector(V(d,0),V(d,1),V(d,2)));
-		volMap[id] += tet->GetCubicVolume();
-		numMap[id]++;
-		if(matMap[id]==nullptr) {
-			G4cerr<<"Invalid material #"<<id<<G4endl;
-			exit(100);
-		}
-		G4LogicalVolume* lv_tet = new G4LogicalVolume(tet, matMap[id], "tet");
-		// G4LogicalVolume* lv_tet = new G4LogicalVolume(tet, tissue, "tet");
-		new G4PVPlacement(0, G4ThreeVector(), lv_tet, "tet", lv_phantomBox, false, 1);
-		// G4VisAttributes* vis = new G4VisAttributes(); vis->SetForceCloud();
-		if(i>2000) lv_tet->SetVisAttributes(G4VisAttributes::GetInvisible());
-		// lv_tet->SetVisAttributes(G4VisAttributes(G4Color(1,1,1,0.1)));
-	}
-	ifsEle.close();
-	G4cout<<"done"<<G4endl;
-
-	//print summary
-	// G4cout << G4endl
-	// 	   << std::setw(9)  << "Organ ID"
-	// 	   << std::setw(11) << "# of Tet"
-	// 	   << std::setw(11) << "vol [cm3]"
-	// 	   << std::setw(11) << "d [g/cm3]"
-	// 	   << std::setw(11) << "mass [g]"
-	// 	   << "\t" << "organ/tissue"<< G4endl ;
-	// G4cout << "--------------------------------------------------------------------------------"<<G4endl;
-
-	// std::map<G4int, G4Material*>::iterator matIter;
-	// G4cout<<std::setiosflags(std::ios::fixed);
-	// G4cout.precision(3);
-	// for(matIter=matMap.begin(); matIter!=matMap.end();matIter++)
-	// {
-	// 	G4int idx = matIter->first;
-
-	// 	G4cout << std::setw(9)  << idx                         // organ ID
-	// 		   << std::setw(11) << numMap[idx]              // # of tetrahedrons
-	// 		   << std::setw(11) << volMap[idx]/cm3          // organ volume
-	// 		   << std::setw(11) << matMap[idx]
-	// 		                       ->GetDensity()/(g/cm3)      // organ density
-	// 		   << std::setw(11) << volMap[idx] * matMap[idx]->GetDensity()/g              // organ mass
-	// 		   << "\t"<<matMap[idx]->GetName() << G4endl; // organ name
-	// }
-	return lv_phantomBox;
+	return lv_patientBox;
 }
 
 
-// void DetectorConstruction::ConstructPbGlass()
+void DetectorConstruction::ConstructPbGlass()
+{
+	// Pb Glass - lead equivalence 0.5 mm Pb
+	//G4Box* sol_glass = new G4Box("sol_glass", 60*0.5*cm, 0.5*0.5*mm, 75*0.5*cm);
+	G4ThreeVector glassHalfSize((60)*0.5*cm, (75)*0.5*cm, 0.5*0.5*mm);
+	G4Box* sol_glass = new G4Box("sol_glass", glassHalfSize.x(), glassHalfSize.y(), glassHalfSize.z());
+	G4EllipticalTube* sol_glass_hole = new G4EllipticalTube("sol_glass_hole", 35*cm, 25*cm, 0.5*mm);
+	G4VSolid* subtract = new G4SubtractionSolid("sub_glass", sol_glass, sol_glass_hole, 0, G4ThreeVector(glassHalfSize.x(), glassHalfSize.y(), 0));
+
+	G4LogicalVolume* lv_glass = new G4LogicalVolume(subtract, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_glass");
+	lv_glass->SetVisAttributes( new G4VisAttributes(G4Colour(0.,0.,1.,0.5)) );
+
+	Quaterniond q(0.6876994, 0.724684, -0.0300256, -0.0316404);
+	Vector3d xAxis = q.matrix()*Vector3d::UnitX(); xAxis.normalized();
+	AngleAxisd aa(M_PI, xAxis);
+	Matrix3d m = aa.matrix() * q.matrix();
+	G4ThreeVector xPrime(m(0), m(3), m(6));
+	G4ThreeVector yPrime(m(1), m(4), m(7));
+	G4ThreeVector zPrime(m(2), m(5), m(8));
+	G4RotationMatrix* rot = new G4RotationMatrix();
+	rot->rotateAxes(xPrime, yPrime, zPrime);
+
+	pv_glass = new G4PVPlacement(rot, G4ThreeVector(-250.31587, -300, 220), lv_glass, "pv_glass", lv_world, false, 0);
+}
+
+void DetectorConstruction::ConstructPbCurtain()
+{
+	// Pb Curtain - lead equivalence 0.5 mm Pb
+	G4Box* sol_curtain = new G4Box("sol_curtain", 80*0.5*cm, 0.5*0.5*mm, (62+5)*0.5*cm);
+	lv_curtain = new G4LogicalVolume(sol_curtain, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_curtain");
+	lv_curtain->SetVisAttributes( new G4VisAttributes(G4Colour(0.,1.,0.,0.5)) );
+	
+	Quaterniond q(0.6779879, 0.6779879, -0.2008292, -0.2008292);
+	Vector3d xAxis = q.matrix()*Vector3d::UnitX(); xAxis.normalized();
+	AngleAxisd aa(0.5 * M_PI, xAxis);
+	Matrix3d m = aa.matrix() * q.matrix();
+	G4ThreeVector xPrime(m(0), m(3), m(6));
+	G4ThreeVector yPrime(m(1), m(4), m(7));
+	G4ThreeVector zPrime(m(2), m(5), m(8));
+	G4RotationMatrix* rot = new G4RotationMatrix();
+	rot->rotateAxes(xPrime, yPrime, zPrime);
+	new G4PVPlacement(rot, G4ThreeVector(-550.04186, -360.5048, -670.87331), lv_curtain, "pv_curtain", lv_world, false, 0);
+}
+
+void DetectorConstruction::ConstructXrayTube()
+{
+	G4VSolid* sol_xrayTube1 = new G4Trd("sol_xrayTube1", 20*cm, 10*cm, 20*cm, 10*cm, 10*cm);
+	G4VSolid* sol_xrayTube1_hole = new G4Trd("sol_xrayTube2", 20*cm-2*mm, 10*cm-2*mm, 20*cm-2*mm, 10*cm-2*mm, 10*cm);
+	G4EllipticalTube* sol_xrayTube2 = new G4EllipticalTube("sol_xrayTube2", 12*cm, 40*cm, 20*cm);
+	G4EllipticalTube* sol_xrayTube2_hole = new G4EllipticalTube("sol_xrayTube2_hole", 12*cm-2*mm, 40*cm-2*mm, 20*cm-2*mm);
+
+	G4RotationMatrix* rot1 = new G4RotationMatrix();
+	rot1->rotateY(90*deg);
+	G4SubtractionSolid* sub_xrayTube1 = new G4SubtractionSolid("sub_xrayTube1", sol_xrayTube1, sol_xrayTube1_hole, 0, G4ThreeVector(0, 0, 0));
+	G4SubtractionSolid* sub_xrayTube1_1 = new G4SubtractionSolid("sub_xrayTube1_1", sub_xrayTube1, sol_xrayTube2, rot1, G4ThreeVector(0, 0, -20*cm));
+
+	G4RotationMatrix* rot2 = new G4RotationMatrix();
+	rot2->rotateY(-90*deg);
+	G4SubtractionSolid* sub_xrayTube2 = new G4SubtractionSolid("sub_xrayTube2", sol_xrayTube2, sol_xrayTube2_hole, 0, G4ThreeVector(0, 0, 0));
+	G4SubtractionSolid* sub_xrayTube2_2 = new G4SubtractionSolid("sub_xrayTube2_2", sub_xrayTube2, sol_xrayTube1, rot1, G4ThreeVector(-20*cm, 0, 0));
+
+	G4UnionSolid* union_xrayTube = new G4UnionSolid("union_xrayTube", sub_xrayTube1_1, sub_xrayTube2_2, rot2, G4ThreeVector(0,0,-20*cm));
+	G4LogicalVolume* lv_xrayTube = new G4LogicalVolume(union_xrayTube,G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"),"lv_xrayTube");
+	lv_xrayTube->SetVisAttributes(new G4VisAttributes(G4Colour(0, 1, 1, 0.5)));
+
+	G4RotationMatrix* rot3 = new G4RotationMatrix();
+	rot3->rotateZ(90*deg);
+	pv_xrayTube = new G4PVPlacement(rot3, G4ThreeVector(0,0,-810*mm)+G4ThreeVector(0,0,18*cm), lv_xrayTube, "pv_xrayTube", lv_world, false, 0, false);
+}
+
+void DetectorConstruction::ConstructFlatPanelDetector()
+{
+	// C-arm Flat Panel Detector, SID=100 cm
+	G4LogicalVolume* lv_FPD = new G4LogicalVolume(new G4Box("pv_fpd", 52*cm*0.5, 42*cm*0.5, 1*cm), G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_epd");
+	lv_FPD->SetVisAttributes(new G4VisAttributes(G4Colour(1.0, 1.0, 1.0,0.5)));
+	pv_FPD = new G4PVPlacement(0, G4ThreeVector(0,0,19*cm), lv_FPD, "pv_FPD", lv_world, false, 0);
+}
+
+
+void DetectorConstruction::VisualizePhantom()
+{
+	if (isInstall) {
+		for (auto itr: materialMap) {
+			G4int idx = itr.first;
+			delete lvTessMap[idx];
+			delete pvTessMap[idx];
+		}
+		delete pv_patient;
+		lvTessMap.clear();
+		pvTessMap.clear();
+	}
+	
+	G4ThreeVector center = (tetData->GetPhantomBoxMax() + tetData->GetPhantomBoxMin())*0.5;
+	G4ThreeVector halfSize = (tetData->GetPhantomBoxMax() - tetData->GetPhantomBoxMin()) * 0.5 + G4ThreeVector(1.,1.,1.) * cm;
+	G4VSolid* sol_patientBox = new G4Box("sol_patientBox", halfSize.x(), halfSize.y(), halfSize.z());
+	G4LogicalVolume* lv_patientBox = new G4LogicalVolume(sol_patientBox, G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"), "lv_patientBox");
+	G4VisAttributes* va_patientBox = new G4VisAttributes();
+	va_patientBox->SetForceWireframe(true);
+	lv_patientBox->SetVisAttributes(va_patientBox);
+	pv_patient = new G4PVPlacement(0,center,lv_patientBox,"lv_patientBox",lv_world,false,0);
+
+	MatrixXd U = tetData->GetAnimator()->GetU();
+	
+	for (auto itr: materialMap) {
+		G4int idx = itr.first;
+		G4String organName = itr.second->GetName();
+		if (numTetMap[idx] == 0) continue;
+		else if (organName.find("spongiosa")   != string::npos) continue;
+		else if (organName.find("medullary")   != string::npos) continue;
+		else if (organName.find("Muscle")      != string::npos) continue;
+		else if (organName.find("RST")         != string::npos) continue;
+		else if (organName.find("arteries")    != string::npos) continue;
+		else if (organName.find("veins")       != string::npos) continue;
+		// else if (organName.find("insensitive") != string::npos) continue;
+		else if (organName.find("(") != string::npos && organName.find("surface") == string::npos) continue;
+		else {
+			cout << itr.first << " " << itr.second->GetName() << " " << numTetMap[idx] << flush;
+			vector<tuple<int,int,int>> facePick = tetData->GetOrganSurfaceVec(idx);
+			G4TessellatedSolid* tess = new G4TessellatedSolid;
+			for (size_t i=0; i<facePick.size(); i++) {
+			tess->AddFacet(new G4TriangularFacet(RowToG4Vec(U.row(get<0>(facePick[i])))-center, 
+											 	 RowToG4Vec(U.row(get<1>(facePick[i])))-center,
+											 	 RowToG4Vec(U.row(get<2>(facePick[i])))-center, ABSOLUTE) );
+			} tess->SetSolidClosed(true);
+
+			lvTessMap[idx] = new G4LogicalVolume(tess, itr.second, organName);
+			lvTessMap[idx]->SetVisAttributes(new G4VisAttributes(colourMap[idx]));
+			pvTessMap[idx] = new G4PVPlacement(0, G4ThreeVector(), lvTessMap[idx], to_string(idx)+"_"+organName, lv_patientBox, false, 0);
+			cout << "...done" << endl;
+		}
+	}
+	isInstall = true;
+}
+
+// void DetectorConstruction::ConstructSDandField()
 // {
-// 	// Pb Glass - 40 x 50 cm tiltable lead acrylic shield, lead equivalence 0.5 mm Pb
-// 	G4Box* glass = new G4Box("sol_glass", 200*mm, 250*mm, 0.25*mm);
-// 	G4LogicalVolume* lv_glass = new G4LogicalVolume(glass, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_glass");
-// 	lv_glass->SetVisAttributes( new G4VisAttributes(G4Colour(0.,1.,0.,0.8)) );
-// 	pv_glass  = new G4PVPlacement(new G4RotationMatrix, G4ThreeVector(), lv_glass, "pv_glass", worldLogical, false, 0);
+// 	if(tetData == nullptr) return;
+// 	// Define detector and scorer
+// 	G4SDManager* SDman = G4SDManager::GetSDMpointer();
+
+// 	// Detector
+// 	G4MultiFunctionalDetector* mfd_patient = new G4MultiFunctionalDetector("MFD_patient");
+// 	SDman->AddNewDetector( mfd_patient );
+
+// 	// Scorer
+// 	mfd_patient->RegisterPrimitive(new TETPSEnergyDeposit("eDep", tetData));
+// 	mfd_patient->RegisterPrimitive(new TETDRFScorer("DRF", tetData));
+	
+// 	// Attach the detector to logical volume
+// 	if(!ui) SetSensitiveDetector(lv_pTet, mfd_patient);
 // }
-
-
-
-
-
 

@@ -33,12 +33,14 @@
 
 #include "G4GeometryTolerance.hh"
 
+enum POSE { Standing, Animating };
+
 class PhantomAnimator
 {
 //functions
 public:
     PhantomAnimator();
-    PhantomAnimator(string prefix);
+    PhantomAnimator(string prefix, POSE pose);
     ~PhantomAnimator();
 
     void ReadTetMesh(string prefix);

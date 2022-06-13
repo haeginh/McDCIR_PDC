@@ -40,14 +40,17 @@
 #include "G4UserRunAction.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "DetectorConstruction.hh"
 #include "PrimaryGeneratorAction.hh"
 #include "Run.hh"
 #include "TETModelImport.hh"
+#include "WEBServerConnect.hh"
 
 class RunAction : public G4UserRunAction
 {
 public:
-	RunAction(TETModelImport* tetData, G4String output, G4Timer* initTimer);
+	RunAction(TETModelImport* tetData_doctor,
+			  G4String output, G4Timer* initTimer, WEBServerConnect* serverConnect);
 	virtual ~RunAction();
 
 public:
@@ -55,16 +58,54 @@ public:
 	virtual void BeginOfRunAction(const G4Run*);
 	virtual void EndOfRunAction(const G4Run*);
 
-	void PrintResult(std::ostream &out);
+private:
+	void SetDoses(HITSMAP edepMap, map<G4int, G4double> massMap, map<G4int, pair<G4double, G4double>> &doses);
+	void SetEffectiveDose(map<G4int, pair<G4double, G4double>> &doses, 
+						  pair<G4double, G4double> &effective,
+						  pair<G4double, G4double> &effective_DRF);
+	pair<G4double, G4double> PropagateError(vector<pair<G4double, G4double>> &doseVec, vector<G4double> &ratio);
+
+	void PrintResultExternal(ostream &out, 
+							TETModelImport* tetData,
+							map<G4int, G4double> massMap, 
+							map<G4int, G4String> nameMap, 
+							map<G4int, pair<G4double,G4double>> doses,
+							pair<G4double, G4double> effective_DRF,
+							pair<G4double, G4double> effective);
+
+						
   
 private:
-	TETModelImport* tetData;
-	Run*            fRun;
-	G4int           numOfEvent;
-	G4int           runID;
-	G4String        outputFile;
-	G4Timer*        initTimer;
-	G4Timer*        runTimer;
+	WEBServerConnect* serverConnect;
+	// TETModelImport*   tetData_patient;
+	TETModelImport*   tetData_doctor;
+	Run*              fRun;
+	G4int             numOfEvent;
+	G4int             runID;
+	G4String          outputFile;
+	G4Timer*          initTimer;
+	G4Timer*          runTimer;
+
+	// patient
+	// map<G4int, G4double> patient_massMap;
+	// map<G4int, G4String> patient_nameMap;
+	// map<G4int, pair<G4double, G4double>> patient_doses;
+	// pair<G4double, G4double> patient_eff, patient_eff_DRF;
+	// ofstream ofs_patient;
+
+	// doctor
+	map<G4int, G4double> doctor_massMap;
+	map<G4int, G4String> doctor_nameMap;
+	map<G4int, pair<G4double, G4double>> doctor_doses;
+	pair<G4double, G4double> doctor_eff, doctor_eff_DRF;
+	ofstream ofs_doctor;
+
+	
+	
+	
+
+
+
 };
 
 #endif

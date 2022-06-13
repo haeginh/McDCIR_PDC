@@ -1,0 +1,45 @@
+# Set the verbose
+#/run/verbose 2
+#/tracking/verbose 2
+
+# Set the number of threads for multi-threading mode
+/run/numberOfThreads  1
+
+# Initialize
+/run/initialize
+
+#/gun/particle gamma
+#/beam/FD FD48
+#/machine/removeGlass
+
+# PA
+# /beam/peak 78
+# /machine/c-arm 0 0 100
+# /beam/c-arm    0 0 100
+#/phantom/data record.txt
+#/phantom/frame 10
+/run/beamOn   100000
+
+# # LAO 20
+# /beam/peak 79
+# /machine/c-arm 20 0 100
+# /beam/c-arm    20 0 100
+# /run/beamOn   10000000
+# 
+# # RAO 20
+# /beam/peak 80
+# /machine/c-arm -20 0 100
+# /beam/c-arm    -20 0 100
+# /run/beamOn   10000000
+# 
+# # CRAN 20
+# /beam/peak 82
+# /machine/c-arm 0 -20 100
+# /beam/c-arm    0 -20 100
+# /run/beamOn   10000000
+# 
+# # CAUD 20
+# /beam/peak 81
+# /machine/c-arm 0 20 100
+# /beam/c-arm    0 20 100
+# /run/beamOn   10000000

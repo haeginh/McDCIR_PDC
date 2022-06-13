@@ -28,11 +28,13 @@
 /// \brief Implementation of the ActionInitialization class
 
 #include "ActionInitialization.hh"
-// #include "PrimaryGeneratorAction_PS.hh"
 #include "RunAction.hh"
+#include "TETSteppingAction.hh"
 
-ActionInitialization::ActionInitialization(TETModelImport* _tetData, G4String _output, G4Timer* _init)
- : G4VUserActionInitialization(), tetData(_tetData), output(_output), initTimer(_init)
+ActionInitialization::ActionInitialization(TETModelImport* _tetData_doctor,
+G4String _output, G4Timer* _init, WEBServerConnect* _serverConnect)
+ : G4VUserActionInitialization(), tetData_doctor(_tetData_doctor),
+ output(_output), initTimer(_init), serverConnect(_serverConnect)
 {
 }
 
@@ -43,11 +45,12 @@ ActionInitialization::~ActionInitialization()
 
 void ActionInitialization::BuildForMaster() const
 {
-	SetUserAction(new RunAction(tetData, output, initTimer));
+	SetUserAction(new RunAction(tetData_doctor, output, initTimer, serverConnect));
 }
 
 void ActionInitialization::Build() const
 {
 	SetUserAction(new PrimaryGeneratorAction());
-	SetUserAction(new RunAction(tetData, output, initTimer));
+	SetUserAction(new RunAction(tetData_doctor, output, initTimer, serverConnect));
+	SetUserAction(new TETSteppingAction());
 }

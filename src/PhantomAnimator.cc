@@ -3,43 +3,48 @@
 PhantomAnimator::PhantomAnimator() {}
 PhantomAnimator::~PhantomAnimator() {}
 
-PhantomAnimator::PhantomAnimator(string prefix)
+PhantomAnimator::PhantomAnimator(string prefix, POSE pose)
 {
-    cout << "Read " + prefix + ".tgf" << endl;
-    igl::readTGF(prefix + ".tgf", C, BE);
-    C *= cm;
-    igl::directed_edge_parents(BE, P);
-
-    //distance to parent joint
-    for (int i = 0; i < BE.rows(); i++)
-        lengths[i] = (C.row(BE(i, 0)) - C.row(BE(i, 1))).norm();
-
     ReadTetMesh(prefix);
-    V_calib = V;
-    C_calib = C;
-    U = V_calib;
+    
+    if (pose == POSE::Animating) {
+        cout << "Read " + prefix + ".tgf" << endl;
+        igl::readTGF(prefix + ".tgf", C, BE);
+        C *= cm;
+        igl::directed_edge_parents(BE, P);
 
-    if (!igl::readDMAT(prefix + ".W", W) || !igl::readDMAT(prefix + ".Wj", Wj))
-        PreparePhantom(prefix);
+        //distance to parent joint
+        for (int i = 0; i < BE.rows(); i++)
+            lengths[i] = (C.row(BE(i, 0)) - C.row(BE(i, 1))).norm();
 
-    double epsilon(1e-2);
-    for (int i = 0; i < W.rows(); i++)
-    {
-        double sum(0);
-        map<int, double> vertexWeight;
-        for (int j = 0; j < W.cols(); j++)
+        V_calib = V;
+        C_calib = C;
+        U = V_calib;
+
+        if (!igl::readDMAT(prefix + ".W", W) || !igl::readDMAT(prefix + ".Wj", Wj))
+            PreparePhantom(prefix);
+
+        double epsilon(1e-2);
+        for (int i = 0; i < W.rows(); i++)
         {
-            if (W(i, j) < epsilon)
-                continue;
-            vertexWeight[j] = W(i, j);
-            sum += W(i, j);
+            double sum(0);
+            map<int, double> vertexWeight;
+            for (int j = 0; j < W.cols(); j++)
+            {
+                if (W(i, j) < epsilon)
+                    continue;
+                vertexWeight[j] = W(i, j);
+                sum += W(i, j);
+            }
+            for (auto &iter : vertexWeight)
+                iter.second /= sum;
+            cleanWeights.push_back(vertexWeight);
         }
-        for (auto &iter : vertexWeight)
-            iter.second /= sum;
-        cleanWeights.push_back(vertexWeight);
+
+        // ReadProfileData("./phantoms/profile.txt");
     }
 
-    ReadProfileData("./phantoms/profile.txt");
+    
 }
 
 void PhantomAnimator::ReadTetMesh(string prefix)

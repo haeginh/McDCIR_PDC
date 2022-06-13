@@ -1,0 +1,20 @@
+Number           0
+Flag             1
+Server           2
+Time             3
+Hospital         4
+FrameNo          5
+FrameTime        6
+TubeVoltage      7
+TubeCurrent      8
+DAP              9
+FD               10
+SID              11
+RAO/LAO          12
+CRAN/CAUD        13
+Table_xyztheta   14 15 16 17
+Glass_xyz        18 19 20
+Glass_wxyz       21 22 23 24
+Radiologist_xyz  25 26 27
+Radiologist_wxyz 28-115
+DoseResults      116-181

@@ -49,10 +49,11 @@
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
 public:
-    DetectorConstruction();
+    DetectorConstruction(TETModelImport* tetData, G4UIExecutive* ui);
     virtual ~DetectorConstruction();
 
     virtual G4VPhysicalVolume* Construct();
+	//virtual void ConstructSDandField();
 
 	// pre init setting
 	void SetTableRefPos(G4ThreeVector ref){ // right top corner (rel. to iso.)
@@ -64,7 +65,7 @@ public:
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
 	{  				
-		G4GeometryManager::GetInstance()->OpenGeometry(worldPhysical);
+		G4GeometryManager::GetInstance()->OpenGeometry(pv_world);
 		
 		table_rot->set(G4RotationMatrix::IDENTITY.axisAngle());
 		table_rot->rotateZ(-table_pivot_angle);
@@ -79,7 +80,7 @@ public:
 		pv_curtain->SetTranslation(G4ThreeVector(transC(0), transC(1), curtain_center.z()+_table_trans.z()));
 		pv_phantom->SetTranslation(G4ThreeVector(transP(0), transP(1), phantom_center.z()+_table_trans.z()));
 
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, worldPhysical);
+		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_world);
 		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 
@@ -97,14 +98,25 @@ private:
 	}
 
     void SetupWorldGeometry();
-
 	void ConstructOperatingTable();
 	G4LogicalVolume* ConstructPatient(G4String _patient);
-	// void ConstructCarmDet();
-	// void ConstructPbGlass();
+	void ConstructFlatPanelDetector();
+	void ConstructPbCurtain();
+	void ConstructPbGlass();
+	void ConstructXrayTube();
+	void VisualizePhantom();
 
-	G4LogicalVolume*   worldLogical;
-	G4VPhysicalVolume* worldPhysical;
+	G4ThreeVector RowToG4Vec(const RowVector3d& row){return G4ThreeVector(row(0), row(1), row(2));}
+
+private:
+	// phantom
+	TETModelImport* tetData;
+	//messenger
+	DetectorMessenger* messenger;
+	
+	// World
+	G4LogicalVolume*   lv_world;
+	G4VPhysicalVolume* pv_world;
 
 	// Operating Table
 	G4VPhysicalVolume *pv_table, *pv_phantom, *pv_curtain;
@@ -112,15 +124,35 @@ private:
 	G4ThreeVector table_rotation_center, table_half_size;//relative coordinate to isocenter
 	G4ThreeVector table_center, curtain_center, phantom_center; // default: w/o table trans.
 	G4RotationMatrix* table_rot; //inverse
-	// G4RotationMatrix* frame_rotation_matrix; //inverse
-	// G4ThreeVector table_trans; //frame_default, 
+
+	// C-arm
+	G4VPhysicalVolume* pv_FPD;
+	G4VPhysicalVolume* pv_xrayTube;
+
+	// Patient
 	G4String patient;
+	G4LogicalVolume*   lv_patient;
+	G4VPhysicalVolume* pv_patient;
+	G4LogicalVolume*   lv_pTet;
+
+	// Glass
+	G4VPhysicalVolume* pv_glass;
 
 	//frame
 	G4double head_margin, curtain_margin;
 
-	//messenger
-	DetectorMessenger* messenger;
+	
+	
+	
+	
+	// Phantom Visualize
+	G4UIExecutive* ui;
+	G4bool isInstall;
+	map<G4int, G4Material*> materialMap;
+	map<G4int, G4int>       numTetMap;
+	map<G4int, G4LogicalVolume*> lvTessMap;
+	map<G4int, G4Colour>    colourMap;
+	map<G4int, G4PVPlacement*> pvTessMap;
 	
 };
 
