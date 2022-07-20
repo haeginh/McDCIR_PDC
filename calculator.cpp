@@ -3,7 +3,7 @@
 #include "G4RunManagerFactory.hh"
 
 #include "DetectorConstruction.hh"
-#include "FTFP_BERT.hh"
+#include "G4PhysListFactory.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4ParallelWorldPhysics.hh"
 #include "ActionInitialization.hh"
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 	}
-
+	
 	// default output file name
 	// if ( !output.size() ) output = macro + ".out";
 
@@ -59,7 +59,8 @@ int main(int argc, char** argv)
 	det->SetPatientName("Patient_M_H175M83800_fixed");
 	det->RegisterParallelWorld(new ParallelMesh("parallel"));
 	runManager->SetUserInitialization(det);
-	G4VModularPhysicsList* physicsList = new FTFP_BERT;
+	auto factory = new G4PhysListFactory();
+    G4VModularPhysicsList* physicsList = factory->GetReferencePhysList("FTFP_BERT_LIV");
 	physicsList->RegisterPhysics(new G4StepLimiterPhysics());
 	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallel"));
 	runManager->SetUserInitialization(physicsList);

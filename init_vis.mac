@@ -11,10 +11,10 @@
 
 # Initialize kernel
 /machine/tableRef 60 120 78.5 cm
-/machine/isocenter 90 60 113.5 cm
+#/machine/isocenter 90 60 113.5 cm
 
 /run/initialize
-
+/gun/energy 0.04 MeV
 # Source setting
 #/control/execute source.mac
 

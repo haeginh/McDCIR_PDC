@@ -35,11 +35,11 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
 
 	FlatDetectorInitialization(DetectorZoomField::FD48, 119.5 * cm); // FD, SID
-	SetSourceEnergy(80);
+	// SetSourceEnergy(80);
 	// G4double carm_primary = 20 * deg;   // +LAO, -RAO
 	// G4double carm_secondary = 20 * deg; // +CAU, -CRA
 	// rotate.rotateY(carm_primary).rotateX(carm_secondary);
-    rotate.set(G4RotationMatrix::IDENTITY.axisAngle());
+    rotate = G4RotationMatrix::IDENTITY;
 	G4ThreeVector focalSpot = rotate * G4ThreeVector(0, 0, -810 * mm);
 	fPrimary->SetParticlePosition(focalSpot);
 
@@ -55,19 +55,19 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 {
 
-	G4double rand = G4UniformRand();
+	// G4double rand = G4UniformRand();
 
-	G4double rand_energy = cdf.rbegin()->second;
-	if (rand < 1)
-	{
-		for (auto itr : cdf)
-		{
-			if (rand > itr.first) continue;
-			rand_energy = itr.second;
-			break;
-		}
-	}
-	fPrimary->SetParticleEnergy(rand_energy);
+	// G4double rand_energy = cdf.rbegin()->second;
+	// if (rand < 1)
+	// {
+	// 	for (auto itr : cdf)
+	// 	{
+	// 		if (rand > itr.first) continue;
+	// 		rand_energy = itr.second;
+	// 		break;
+	// 	}
+	// }
+	// fPrimary->SetParticleEnergy(rand_energy);
 	fPrimary->SetParticleMomentumDirection(SampleRectangularBeamDirection());
 	fPrimary->GeneratePrimaryVertex(anEvent);
 }
@@ -87,7 +87,7 @@ G4ThreeVector PrimaryGeneratorAction::SampleRectangularBeamDirection()
 void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 {
 	G4String fileName(to_string(peakE) + ".spec");
-	G4String spectra("./spectra/" + fileName);
+	G4String spectra("../spectra/" + fileName);
 
 	G4cout << "Read x-ray spectra: " << spectra << G4endl;
 	ifstream ifs(spectra);

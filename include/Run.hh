@@ -41,13 +41,17 @@ public:
     virtual void RecordEvent(const G4Event*);
     virtual void Merge(const G4Run*);
 
-    const std::vector<G4double>* GetDoseMapS() const {return &doseMapS;}
-    const std::vector<G4double>* GetDoseMapL() const {return &doseMapL;}
+    const std::vector<G4float>* GetDoseMapS() const {return &doseMapS;}
+    // const std::vector<G4ThreeVector>* GetDoseMapV() const {return &doseMapV;}
+    const std::vector<G4float>* GetDoseMapE() const {return &doseMapE;}
+    // const std::vector<G4float>* GetDoseMapL() const {return &doseMapL;}
     //    G4double GetDap(){return dap;}
 private:
-    G4int   fCollID_skin, fCollID_lens;//, fCollID_dap;
-    std::vector<G4double>  doseMapS;
-    std::vector<G4double>  doseMapL;
+    G4int   fCollID_skin, fCollID_vector, fCollID_lens, fCollID_length;//, fCollID_dap;
+    std::vector<G4float>  doseMapS;
+    // std::vector<G4ThreeVector>  doseMapV;
+    std::vector<G4float>  doseMapE;
+    // std::vector<G4float>  doseMapL;
 //    G4double dap;
 };
 

@@ -53,7 +53,6 @@ public:
 private:
 	DetectorConstruction* fDet;
 	G4UIdirectory*        fMachineDir;
-	G4UIcmdWith3VectorAndUnit* fIsoCenterCmd; //isocenter position in ref. coord. (ChArUco)
 	G4UIcmdWith3VectorAndUnit* fTableRefCmd; //table ref. position in ref. coord (ChArUco)
 	G4UIcmdWith3VectorAndUnit* fTableTransCmd; //trans
 	G4UIcmdWithADoubleAndUnit* fTablePivotCmd; //pivot

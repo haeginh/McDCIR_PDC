@@ -54,11 +54,6 @@ public:
     virtual G4VPhysicalVolume* Construct();
 
 	// pre init setting
-	void SetIsoCenter(G4ThreeVector iso){
-		carm_isocenter = iso;
-		// pv_frame->SetTranslation(frame_default-carm_isocenter+table_trans);
-		// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
-	}
 	void SetTableRefPos(G4ThreeVector ref){table_ref_pos = ref;}
 
     // Operating Table
@@ -67,7 +62,7 @@ public:
 	{  				
 		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
 		table_trans = _table_trans;
-		G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
+		G4ThreeVector frameOrigin = frame_default + table_trans; //before rotation
 		if(table_pivot_angle==0) 
 		{
 			pv_frame->SetTranslation(frameOrigin);
@@ -98,7 +93,6 @@ private:
 
 	G4LogicalVolume*   worldLogical;
 	G4VPhysicalVolume* worldPhysical;
-	G4ThreeVector carm_isocenter;
 
 	// Operating Table
 	G4VPhysicalVolume* pv_frame;
@@ -114,7 +108,6 @@ private:
 
 	//messenger
 	DetectorMessenger* messenger;
-	
 };
 
 

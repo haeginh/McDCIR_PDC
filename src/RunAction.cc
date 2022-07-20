@@ -58,7 +58,8 @@ G4Run* RunAction::GenerateRun()
 {
     static_cast<ParallelMesh*>(G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0))->GetIJK(ni,nj,nk);
     // generate run
-    fRun = new Run(ni*nj*nk);
+    // fRun = new Run(ni*nj*nk);
+    fRun = new Run(ni*nj);
     return fRun;
 }
 
@@ -74,14 +75,37 @@ void RunAction::EndOfRunAction(const G4Run* )
 {
     if(!IsMaster()) return;
     auto doseMapS=fRun->GetDoseMapS();
-    auto doseMapL=fRun->GetDoseMapL();
-    std::vector<G4double> resultMap(doseMapS->size());
-    std::ofstream ofs("./doseMaps/"+std::to_string(fRun->GetRunID())+".map", std::ios::binary);
-    std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray;});
-    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
-    std::transform(doseMapL->begin(), doseMapL->end(), resultMap.begin(), [&](G4double d)->G4double{return d/(G4double)nps/gray;});
-    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4double));
+    // auto doseMapV=fRun->GetDoseMapV();
+    auto doseMapE=fRun->GetDoseMapE();
+    // auto doseMapL=fRun->GetDoseMapL();
+    // std::ofstream hist(to_string(fRun->GetRunID())+".hist");
+    // for(size_t i=0;i<doseMapL->size();i++) hist <<i<<" "<<(*doseMapL)[i]<<endl;
+    // hist.close();
+    return;
+
+    std::vector<G4float> resultMap(doseMapS->size());
+    std::ofstream ofs(std::to_string(fRun->GetRunID())+"AP.map", std::ios::binary);
+    std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4float d)->G4float{return d/(G4float)nps/gray;});
+    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4float));
+    // std::transform(doseMapE->begin(), doseMapE->end(), resultMap.begin(), [&](G4float d)->G4float{return d/(G4float)nps/gray;});
+    // ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4float));
     ofs.close();
+
+    // std::ofstream ofsV("avg_dir.txt");
+    // for(G4ThreeVector v:*doseMapV)
+    // {
+    //     G4ThreeVector u = v.unit();
+    //     ofsV<<u.x()<<" "<<u.y()<<" "<<u.z()<<endl;
+    // }
+    // ofsV.close();
+
+    // std::ofstream ofs("energy_analysis.txt");
+    // for(G4int i=0;i<doseMapS->size();i++) ofs<<(*doseMapS)[i]/(*doseMapL)[i]/keV<<G4endl;
+    // // for(G4float f:(*doseMapS)) ofs<<f/(doseMapL)/keV<<endl;
+    // ofs.close();
+    // std::ofstream ofs1("cosine_analysis.txt");
+    // for(G4int i=0;i<doseMapE->size();i++) ofs1<<(*doseMapE)[i]/(*doseMapL)[i]<<G4endl;
+    // ofs1.close();
     //dose map unit: (/cm2)
 //    G4cout<<"dose of DAP meter: "<<G4BestUnit(fRun->GetDap()/nps,"Dose")<<G4endl;
 }

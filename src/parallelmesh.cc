@@ -49,13 +49,16 @@ ParallelMesh::~ParallelMesh()
 
 void ParallelMesh::Construct()
 {
-    G4VPhysicalVolume* ghostWorld = GetWorld();
-    G4LogicalVolume* worldLogical = ghostWorld->GetLogicalVolume();
+    //mesh tally box
+    G4double meshHalfX = 2.*m, meshHalfY = 2.*m, meshHalfZ = 1.5*m;
+  	G4VSolid* meshSolid = new G4Box("meshSolid", meshHalfX, meshHalfY, meshHalfZ);
+  	G4LogicalVolume* meshLogical = new G4LogicalVolume(meshSolid,0,"meshLogical");
+	new G4PVPlacement(0,G4ThreeVector(), meshLogical,"meshPhysical", GetWorld()->GetLogicalVolume(), false,0,false);
 
     G4double halfX=2.5*cm, halfY=2.5*cm, halfZ=2.5*cm;
-    ni = ((G4Box*)worldLogical->GetSolid())->GetXHalfLength() / halfX;
-    nj = ((G4Box*)worldLogical->GetSolid())->GetYHalfLength() / halfY;
-    nk = ((G4Box*)worldLogical->GetSolid())->GetZHalfLength() / halfZ;
+    ni = meshHalfX / halfX;
+    nj = meshHalfY / halfY;
+    nk = meshHalfZ / halfZ;
 
     G4Box* boxX = new G4Box("BoxX", halfX, halfY*nj, halfZ*nk);
     G4LogicalVolume* boxX_log = new G4LogicalVolume(boxX, 0, "boxX_log");
@@ -64,7 +67,8 @@ void ParallelMesh::Construct()
     G4Box* boxZ = new G4Box("BoxZ", halfX, halfY, halfZ);
     boxZ_log = new G4LogicalVolume(boxZ, 0, "boxZ_log");
 
-    new G4PVReplica("meshX", boxX_log, worldLogical, kXAxis, ni, halfX*2);
+    // new G4PVPlacement(0, G4ThreeVector(), boxX_log, "skin", GetWorld()->GetLogicalVolume(), false, 1);
+    new G4PVReplica("meshX", boxX_log, meshLogical, kXAxis, ni, halfX*2);
     new G4PVReplica("meshY", boxY_log, boxX_log, kYAxis, nj, halfY*2);
     new G4PVReplica("meshZ", boxZ_log, boxY_log, kZAxis, nk, halfZ*2);
 }

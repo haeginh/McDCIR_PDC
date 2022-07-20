@@ -50,15 +50,17 @@ class MeshSD : public G4VSensitiveDetector
     virtual void   EndOfEvent(G4HCofThisEvent* hitCollection);
 
   private:
-    void CalculateDoses(G4double energy, G4double &skinDose, G4double &lensDose);
+    void CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDose);
 
   private:
-    G4THitsMap<G4double>* fHitsMapS;
-    G4THitsMap<G4double>* fHitsMapE;
+    G4THitsMap<G4float>* fHitsMapS;  //skin dose
+    G4THitsMap<G4ThreeVector>* fHitsMapV;  //vector
+    G4THitsMap<G4float>* fHitsMapE; //lens dose
+    G4THitsMap<G4float>* fHitsMapL; //tmp
     G4int    ni, nj, nk;
-    std::vector<G4double> energyVec;
-    std::vector<G4double> skinDvec, lensDvec;
-    std::vector<G4double> skinSlope, lensSlope;
+    std::vector<G4float> energyVec;
+    std::vector<G4float> skinDvec, lensDvec;
+    std::vector<G4float> skinSlope, lensSlope;
     G4ParticleDefinition* gamma;
 };
 
