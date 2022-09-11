@@ -39,7 +39,8 @@ TETPSEnergyDeposit::~TETPSEnergyDeposit()
 
 G4int TETPSEnergyDeposit::GetIndex(G4Step* aStep)
 {
+
 	// return the organ ID (= material index)
-	G4int copyNo = aStep->GetPreStepPoint()->GetTouchable()->GetCopyNumber();
+  G4int copyNo = aStep->GetPreStepPoint()->GetTouchable()->GetCopyNumber();
   return tetData->GetMaterialIndex(copyNo);
 }
