@@ -62,7 +62,7 @@ G4Material* TETParameterisation::ComputeMaterial(const G4int copyNo,
 		phy->GetLogicalVolume()->SetVisAttributes(phantom->GetVisAtt(copyNo));
 		phy->GetLogicalVolume()->SetMaterial(phantom->GetMateiral(copyNo));
 	}
-
+	
 	// // return the material data for each material index
 	return phantom->GetMateiral(copyNo);
 }

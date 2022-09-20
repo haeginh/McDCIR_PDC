@@ -57,7 +57,7 @@ DetectorMessenger::DetectorMessenger(DetectorConstruction *_det)
 	fTableRefCmd->AvailableForStates(G4State_PreInit);
 	
 	fTableTransCmd = new G4UIcmdWith3VectorAndUnit("/machine/tableTrans", this);
-	fTablePivotCmd = new G4UIcmdWithADoubleAndUnit("/mahcine/pivot", this);
+	fTablePivotCmd = new G4UIcmdWithADoubleAndUnit("/machine/pivot", this);
 	fDetCmd = new G4UIcmdWith3Vector("/machine/c-arm", this);
 	fRemoveDetCmd = new G4UIcmdWithoutParameter("/machine/removeDet", this);
 	fGlassTransCmd = new G4UIcmdWith3VectorAndUnit("/machine/glassTrans", this);

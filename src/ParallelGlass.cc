@@ -55,7 +55,10 @@ void ParallelGlass::Construct()
   if(fConstructed) return;
   fConstructed = true;
  
-  ifstream ifsNode(glassFile + ".node");
+  G4String dir = std::getenv("DCIR_PHANTOM_DIR");
+  ifstream ifsNode(dir+glassFile + ".node");
+  if(!ifsNode.is_open())
+    G4Exception("ParallelGlass::Contruct", "", FatalException, ("cannot open"+dir+glassFile + ".node").c_str());
   G4int num, tmp;
   ifsNode>>num>>tmp>>tmp>>tmp;
   vector<G4ThreeVector> nodes;
@@ -80,7 +83,9 @@ void ParallelGlass::Construct()
   vis->SetForceWireframe(true);
   pv_glass->GetLogicalVolume()->SetVisAttributes(vis);
 
-  ifstream ifsEle(glassFile + ".ele");
+  ifstream ifsEle(dir+glassFile + ".ele");
+  if(!ifsEle.is_open())
+    G4Exception("ParallelGlass::Contruct", "", FatalException, ("cannot open"+dir+glassFile + ".ele").c_str());
   ifsEle>>num>>tmp>>tmp;
   G4int a, b, c, d;
   G4Material* lead = G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb");

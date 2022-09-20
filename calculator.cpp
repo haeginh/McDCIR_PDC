@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 		det->RegisterParallelWorld(parallelworlds[i]);
 		physicsList->RegisterPhysics(new G4ParallelWorldPhysics(parallelworlds[i]->GetName(), true));
 	}
-	auto parallelGlass = new ParallelGlass("parallelGlass", "glassTet");
+	auto parallelGlass = new ParallelGlass("parallelGlass", "pbGlass.1");
 	det->RegisterParallelWorld(parallelGlass);
 	
 	// Set mandatory initialization classes
