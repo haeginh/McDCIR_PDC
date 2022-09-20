@@ -5,6 +5,7 @@
 #include "DetectorConstruction.hh"
 #include "ParallelGlass.hh"
 #include "ParallelPhantom.hh"
+
 #include "G4StepLimiterPhysics.hh"
 #include "G4ParallelWorldPhysics.hh"
 #include "ActionInitialization.hh"
@@ -58,7 +59,8 @@ int main(int argc, char** argv)
 		parallelworlds.push_back(new ParallelPhantom("phantom"+std::to_string(i), phantomData_AM));
 	auto det = new DetectorConstruction();
 	det->SetPatientName("Patient_M_H175M83800_fixed");
-	auto physicsList = new PhysicsList();
+
+auto physicsList = new PhysicsList();
 	for(int i=maxNum-1;i>-1;i--) //register in opposite order
 	{
 		det->RegisterParallelWorld(parallelworlds[i]);
@@ -69,6 +71,7 @@ int main(int argc, char** argv)
 	
 	// Set mandatory initialization classes
 	runManager->SetUserInitialization(det);
+
 	// physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallelGlass", true));
 	runManager->SetUserInitialization(physicsList);
 	runManager->SetUserInitialization(new ActionInitialization(parallelworlds, initTimer));

@@ -36,7 +36,10 @@ using namespace std;
 DetectorConstruction::DetectorConstruction()
 :worldLogical(0) ,worldPhysical(0), isoZ(113.5*cm), table_ref_pos(-229.35*mm, 447.5*mm, -184.285*mm), table_size(500*mm, 3115*mm, 1.43*mm),//table_default_trans(1.12*m, -0.3*m, 0.785*m),
 curtain_size(0.5*mm, 500*mm, 400*mm),table_rotation_center(0, 0, 0), head_margin(10.*cm), curtain_margin(10.*cm)
+
 {
+	SetTableSize(G4ThreeVector(55*cm, 290*cm, 1.43*mm));
+	SetTableRefPos(G4ThreeVector(-327, 398, -175)*mm);
 	// table_rotation_center = table_default_trans;
 	// Operating Table (w/ patient, curtain)
 	// table_ocr = G4ThreeVector(-280,-960,-10); // Initial position
@@ -106,12 +109,14 @@ void DetectorConstruction::ConstructOperatingTable()
 	G4LogicalVolume* lv_table = new G4LogicalVolume(table, table_mat, "lv_table");
 	table_center0 = G4ThreeVector(table_ref_pos.x() + table_size.x()*0.5, table_ref_pos.y()-table_size.y()*0.5, table_ref_pos.z()-table_size.z()*0.5);
 	pv_table = new G4PVPlacement(rot, table_center0, lv_table, "pv_table", worldLogical, false, 1);
+
 	lv_table->SetVisAttributes( new G4VisAttributes(G4Colour(1.,1.,0.)));
 
 	// phantom box
 	G4LogicalVolume* lv_phantomBox = ConstructPatient(patient);
 	lv_phantomBox->SetVisAttributes(G4VisAttributes::GetInvisible());
-	phantom_center0 = table_center0 + 
+
+phantom_center0 = table_center0 + 
 	                        G4ThreeVector(0., table_size.y()*0.5-((G4Box*) lv_phantomBox->GetSolid())->GetYHalfLength(),
 							                  table_size.z()*0.5 + ((G4Box*) lv_phantomBox->GetSolid())->GetZHalfLength());
 	pv_phantom = new G4PVPlacement(rot, phantom_center0,lv_phantomBox, "phantom box", worldLogical, false, 0);
@@ -124,6 +129,7 @@ void DetectorConstruction::ConstructOperatingTable()
 	curtain_center0.setZ(table_center0.z() -table_size.z()*0.5 - curtainHalfSize.z());
 	auto lv_curtain = new G4LogicalVolume(curtain, G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"), "lv_curtain");
 	pv_curtain = new G4PVPlacement(rot, curtain_center0, lv_curtain, "pv_curtain", worldLogical, false, 1);
+
 	lv_curtain->SetVisAttributes( new G4VisAttributes(G4Colour(0.,0.,1.,0.8)) );
 }
 

@@ -44,7 +44,7 @@
 #include "DetectorMessenger.hh"
 #include "G4GeometryManager.hh"
 #include "ParallelPhantom.hh"
-// #include "ParallelGlass.hh"
+#include <Eigen/Core>
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -59,7 +59,6 @@ public:
 
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
-	//_table_trans is the translation from when rotation center is at the center of the table
 	{  				
 		// G4GeometryManager::GetInstance()->OpenGeometry(worldPhysical);
 		
@@ -68,7 +67,6 @@ public:
 		table_rot->rotateZ(-table_pivot_angle); //inverse
 
 		Eigen::Rotation2Dd rot(table_pivot_angle);
-		G4cout<<table_pivot_angle<<G4endl;
 		Eigen::Translation2d trans0(table_rotation_center.x(), table_rotation_center.y());
 		auto T = trans0*rot*trans0.inverse()*Eigen::Translation2d(_table_trans.x(), _table_trans.y());
 		Eigen::Vector2d transT = (T*Eigen::Translation2d(table_center0.x(), table_center0.y())).translation();
@@ -78,9 +76,6 @@ public:
 		pv_table->SetTranslation(G4ThreeVector(transT(0), transT(1), table_center0.z()+_table_trans.z()));
 		pv_curtain->SetTranslation(G4ThreeVector(transC(0), transC(1), curtain_center0.z()+_table_trans.z()));
 		pv_phantom->SetTranslation(G4ThreeVector(transP(0), transP(1), phantom_center0.z()+_table_trans.z()));
-
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, worldPhysical);
-		G4RunManager::GetRunManager()->GeometryHasBeenModified();
 	}
 
 	void UseCurtain(G4bool use = true)
@@ -138,6 +133,10 @@ public:
 
 
 private:
+	void SetTableSize(G4ThreeVector size){ // full size
+		table_half_size = size*0.5;
+	}
+
     void SetupWorldGeometry();
 
 	void ConstructOperatingTable();
@@ -155,6 +154,7 @@ private:
 	G4ThreeVector table_size, curtain_size;
 	G4ThreeVector table_center0, phantom_center0, curtain_center0;
 	G4VPhysicalVolume *pv_table, *pv_phantom, *pv_curtain;
+
 	G4String patient;
 
 	//frame

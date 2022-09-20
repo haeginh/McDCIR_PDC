@@ -213,3 +213,4 @@ bool ParallelPhantom::InstallPhantomBox()
     phantomInstalled = false;
     return true;
   }
+

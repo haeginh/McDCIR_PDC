@@ -15,9 +15,6 @@
 /run/initialize
 
 /phantom/install 0
-#/phantom/data record.txt
-#/machine/c-arm 0 0 -1
-#/phantom/frame 1
 
 # Source setting
 #/control/execute source.mac

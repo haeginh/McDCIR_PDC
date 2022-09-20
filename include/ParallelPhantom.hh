@@ -79,7 +79,6 @@ public:
   // G4double GetRBMDRF(G4int idx, G4int eIdx){ return phantomData->GetRBMDRF(idx, eIdx);}
 	// G4double GetBSDRF (G4int idx, G4int eIdx){ return phantomData->GetBSDRF(idx, eIdx);}
 
-
   void LoadPhantom(G4String name, G4String scale);
   bool Deform(RotationList vQ, RowVector3d root); // return true if phantom was installed
   bool InstallPhantomBox();
@@ -89,8 +88,6 @@ public:
   Eigen::ArrayXd    doseMass;
 private:
   G4bool fConstructed;
-  G4String phantomDir;
-  // ParallelPhantomMessenger* messenger;
 
   // Radiologist
   G4int              numOfTet;
