@@ -84,7 +84,6 @@ void ParallelGlass::Construct()
   pv_glass->GetLogicalVolume()->SetVisAttributes(vis);
 
   ifstream ifsEle(dir+glassFile + ".ele");
-  if(!ifsEle.is_open())
     G4Exception("ParallelGlass::Contruct", "", FatalException, ("cannot open"+dir+glassFile + ".ele").c_str());
   ifsEle>>num>>tmp>>tmp;
   G4int a, b, c, d;
