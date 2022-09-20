@@ -35,7 +35,9 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
 
 	FlatDetectorInitialization(DetectorZoomField::FD48, 119.5 * cm); // FD, SID
-	SetSourceEnergy(80);
+	// SetSourceEnergy(80);
+
+	fPrimary->SetParticleEnergy(9.99*MeV);
 	// G4double carm_primary = 20 * deg;   // +LAO, -RAO
 	// G4double carm_secondary = 20 * deg; // +CAU, -CRA
 	// rotate.rotateY(carm_primary).rotateX(carm_secondary);
@@ -55,19 +57,20 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 {
 
-	G4double rand = G4UniformRand();
+	// G4double rand = G4UniformRand();
 
-	G4double rand_energy = cdf.rbegin()->second;
-	if (rand < 1)
-	{
-		for (auto itr : cdf)
-		{
-			if (rand > itr.first) continue;
-			rand_energy = itr.second;
-			break;
-		}
-	}
-	fPrimary->SetParticleEnergy(rand_energy);
+	// G4double rand_energy = cdf.rbegin()->second;
+	// cdf.lower_bound(rand);
+	// if (rand < 1)
+	// {
+	// 	for (auto itr : cdf)
+	// 	{
+	// 		if (rand > itr.first) continue;
+	// 		rand_energy = itr.second;
+	// 		break;
+	// 	}
+	// }
+	// fPrimary->SetParticleEnergy(cdf.lower_bound(G4UniformRand())->second);
 	fPrimary->SetParticleMomentumDirection(SampleRectangularBeamDirection());
 	fPrimary->GeneratePrimaryVertex(anEvent);
 }
@@ -112,16 +115,15 @@ void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 				G4double energy, intensity;
 				stringstream ss2(dump);
 				ss2 >> energy >> intensity;
-				sum += energy * intensity;
-				pdf.push_back(make_pair(energy * intensity, energy * keV));
+				sum += intensity;
+				pdf.push_back(make_pair(intensity, energy * keV));
 			}
 		}
 	}
 	ifs.close();
 
-	sort(pdf.begin(), pdf.end(), greater<>());
-	transform(pdf.begin(), pdf.end(), pdf.begin(),
-			  [&sum](pair<G4double, G4double> iter) -> pair<G4double, G4double> { return make_pair(iter.first / sum, iter.second); });
+	transform(pdf.begin(), pdf.end(), pdf.begin(), [&sum](pair<G4double, G4double> iter)
+	          -> pair<G4double, G4double> { return make_pair(iter.first / sum, iter.second); });
 
 	cdf.clear();
 	G4double sumProb(0);

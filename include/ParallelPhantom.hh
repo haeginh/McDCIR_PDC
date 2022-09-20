@@ -32,35 +32,84 @@
 #include "G4PVPlacement.hh"
 #include "G4RunManager.hh"
 #include "globals.hh"
-#include "TETModelImport.hh"
+#include "PhantomData.hh"
+#include "PhantomAnimator.hh"
+#include "G4PVParameterised.hh"
 
 class G4LogicalVolume;
-class ParallelPhantomMessenger;
+class TETParameterisation;
+// class ParallelPhantomMessenger;
 
 class ParallelPhantom : public G4VUserParallelWorld
 {
 public:
-  ParallelPhantom(G4String parallelWorldName, TETModelImport* _tetData);
+  ParallelPhantom(G4String parallelWorldName, PhantomData* _phantom);
   virtual ~ParallelPhantom();
 
 public:
   virtual void Construct();
   virtual void ConstructSD();
-  void SetIsoCenter(G4ThreeVector iso){
-    isocenter = iso;
-  }
-  void Deform(RotationList vQ, Vector3d root);
 
+  G4Tet* GetTet(G4int idx){return tetVec[idx];}
+  G4int  GetOrganID(G4int idx){return phantomAnimator->GetID(idx);}
+  G4VisAttributes* GetVisAtt(G4int idx){return phantomData->GetVisAtt(GetOrganID(idx));}
+  G4Material* GetMateiral(G4int idx){
+    G4int organID = GetOrganID(idx);
+    if(organID>0)
+    {
+      auto mat = phantomData->GetMaterial(organID);
+      if(!mat)
+        G4Exception("ParallelPhantom::GetMaterial", "", JustWarning, ("Wrong organID: "+to_string(organID)).c_str());
+      return mat;
+    }
+    else return phantomData->GetMaterial(126);
+  }
+  G4bool IsForVis(){return phantomData->IsForVis();}
+  G4bool GetBoneMassRatio(G4int organID, G4double &rbmR, G4double &bsR)
+  {
+    return phantomData->GetBoneMassRatio(organID, rbmR, bsR);
+  }
+ 	void GetDRF(G4double energy, G4int organID, G4double &rbmDRF, G4double &bsDRF)
+  {
+    phantomData->GetDRF(energy, organID, rbmDRF, bsDRF);
+  }
+  G4double GetVolume(G4int idx){return organVol[idx];}
+  G4double GetBoneMassInv(G4int idx){return boneMassInv[idx];}
+  G4int GetNumOfSkinFacet() {return numOfSkinFacet;}
+  // G4double GetRBMDRF(G4int idx, G4int eIdx){ return phantomData->GetRBMDRF(idx, eIdx);}
+	// G4double GetBSDRF (G4int idx, G4int eIdx){ return phantomData->GetBSDRF(idx, eIdx);}
+
+
+  void LoadPhantom(G4String name, G4String scale);
+  bool Deform(RotationList vQ, RowVector3d root); // return true if phantom was installed
+  bool InstallPhantomBox();
+  bool RemovePhantomBox();
+  
+  PhantomData*       phantomData;
+  Eigen::ArrayXd    doseMass;
 private:
   G4bool fConstructed;
-  ParallelPhantomMessenger* messenger;
-  G4ThreeVector isocenter;
+  G4String phantomDir;
+  // ParallelPhantomMessenger* messenger;
 
   // Radiologist
-  TETModelImport*    tetData;
+  G4int              numOfTet;
+  G4int              numOfSkinFacet;
+  PhantomAnimator*   phantomAnimator;
   G4ThreeVector      doctor_translation;
-  G4LogicalVolume*   lv_tet;
   G4VPhysicalVolume* pv_doctor;
+  vector<G4Tet*>     tetVec;
+  std::map<G4int, G4double> organVol;
+  std::map<G4int, G4double> boneMassInv;
+  G4ThreeVector      boxHalfSize, boxCenter;
+  G4PVPlacement*     phantomBoxPhy;
+  TETParameterisation* phantomParamPhy;  
+  G4PVParameterised*   g4ParamPhy;
+  G4LogicalVolume*   phantomBoxLog;
+  G4LogicalVolume*   tetLog;
+  G4double rbmMass, bsMass;
+
+  G4bool phantomInstalled;
 };
 
 #endif

@@ -33,6 +33,8 @@
 #include "G4RunManager.hh"
 #include "globals.hh"
 #include "G4GeometryManager.hh"
+#include "G4SystemOfUnits.hh"
+#include <Eigen/Geometry>
 
 class G4LogicalVolume;
 
@@ -43,37 +45,33 @@ public:
   virtual ~ParallelGlass();
 
   virtual void Construct();
-  void SetIsoCenter(G4ThreeVector iso)
-  {
-    isocenter = iso;
-  }
 
   // Glass
-  void SetGlassPose(G4ThreeVector _glass_trans, G4ThreeVector _glass_axis, G4double _glass_theta)
+  void SetGlassPose(G4ThreeVector trans, Eigen::Quaterniond q)
   {
     if(pv_glass == NULL)
-      pv_glass = new G4PVPlacement(new G4RotationMatrix(), G4ThreeVector(), lv_glass, "glassPV",GetWorld()->GetLogicalVolume(), false, 0);
+    {
+      glass_rotation_matrix = new G4RotationMatrix();
+      pv_glass = new G4PVPlacement(glass_rotation_matrix, G4ThreeVector(), lv_glass, "glassPV",GetWorld()->GetLogicalVolume(), false, 0);
+    }
 
-    G4GeometryManager::GetInstance()->OpenGeometry(pv_glass);
-    pv_glass->SetTranslation(_glass_trans - isocenter);
-    pv_glass->GetRotation()->setAxis(_glass_axis);
-    pv_glass->GetRotation()->setTheta(-_glass_theta);
-    pv_glass->GetRotation()->setAxis(_glass_axis);
-    G4RotationMatrix rot = pv_glass->GetObjectRotationValue();
-    G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_glass);
-
-    // G4cout << "Glass Axis Angle: " << _glass_axis << " " << _glass_theta << G4endl;
-    // G4cout << rot * G4ThreeVector(20, -25, 0) + _glass_trans * 0.1 << G4endl;
-    // G4cout << rot * G4ThreeVector(20, 25, 0) + _glass_trans * 0.1 << G4endl;
-    // G4cout << rot * G4ThreeVector(-20, 25, 0) + _glass_trans * 0.1 << G4endl;
-    // G4cout << rot * G4ThreeVector(-20, -25, 0) + _glass_trans * 0.1 << G4endl;
+    // G4GeometryManager::GetInstance()->OpenGeometry(pv_glass);
+    Eigen::AngleAxisd rot(q.inverse());
+    glass_rotation_matrix->setTheta(0);
+    glass_rotation_matrix->setAxis(G4ThreeVector(rot.axis()(0), rot.axis()(1), rot.axis()(2)));
+    glass_rotation_matrix->setTheta(rot.angle()*rad);
+    glass_rotation_matrix->invert();
+    pv_glass->SetTranslation(trans);
+    // G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_glass);
   }
 
   void RemoveGlass()
   {
-    if(pv_glass == NULL) return;
+    if(pv_glass == nullptr) return;
     // G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_glass);
+    delete glass_rotation_matrix;
     delete pv_glass;
+    pv_glass = nullptr;
   }
 
   // C-arm det
@@ -82,38 +80,40 @@ public:
 	{
     if(pv_det == NULL)
     {
-      pv_det = new G4PVPlacement(new G4RotationMatrix, G4ThreeVector(), lv_det, "pv_det", GetWorld()->GetLogicalVolume(), false, 0);
-      carm_rotation_matrix = pv_det->GetRotation();
+      carm_rotation_matrix = new G4RotationMatrix;
+      pv_det = new G4PVPlacement(carm_rotation_matrix, G4ThreeVector(), lv_det, "pv_det", GetWorld()->GetLogicalVolume(), false, 0);
     }
     
-		G4GeometryManager::GetInstance()->OpenGeometry(pv_det);
+		// G4GeometryManager::GetInstance()->OpenGeometry(pv_det);
 		carm_rotation_matrix->setTheta(0); //set identity
 		carm_rotation_matrix->rotateY(_carm_primary).rotateX(_carm_secondary);
 		carm_rotation_matrix->invert();
 		pv_det->SetTranslation(carm_rotation_matrix->inverse()*G4ThreeVector(0,0,_carm_sid-focalLength));
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_det);
+		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_det);
   }
 
   void RemoveCarmDet()
   {
     if(pv_det == NULL) return;
+    delete carm_rotation_matrix;
     delete pv_det;
+    pv_det;
   }
   void ConstructCarmDet();
 
 private:
   G4String glassFile;
   G4bool fConstructed;
-  G4ThreeVector isocenter;
 
   // Glass
   G4LogicalVolume* lv_glass;
-  G4VPhysicalVolume *pv_glass;
+  G4VPhysicalVolume* pv_glass;
+	G4RotationMatrix* carm_rotation_matrix; //inverse
 
 	// C-arm
   G4LogicalVolume* lv_det;
 	G4VPhysicalVolume* pv_det;
-	G4RotationMatrix* carm_rotation_matrix; //inverse
+	G4RotationMatrix* glass_rotation_matrix; //inverse
 	G4double focalLength;
 };
 

@@ -30,9 +30,8 @@
 
 #ifndef TETPSEnergyDeposit_h
 #define TETPSEnergyDeposit_h 1
-
+#include "ParallelPhantom.hh"
 #include "G4PSEnergyDeposit.hh"
-#include "TETModelImport.hh"
 
 // *********************************************************************
 // This is the scorer based on G4PSEnergyDeposit class.
@@ -43,14 +42,12 @@
 class TETPSEnergyDeposit : public G4PSEnergyDeposit
 {
    public:
-      TETPSEnergyDeposit(G4String name,TETModelImport* _tetData);
+      TETPSEnergyDeposit(G4String name, ParallelPhantom* _phantom);
       virtual ~TETPSEnergyDeposit();
 
   protected:
       virtual G4int GetIndex(G4Step*);
-
-  private:
-      TETModelImport* tetData;
+      ParallelPhantom* phantom;
 };
 
 #endif

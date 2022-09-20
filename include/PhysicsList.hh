@@ -23,73 +23,39 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// ParallelMessenger.cc
+// PhysicsList.hh
+// \file   MRCP_GEANT4/External/include/PhysicsList.hh
 // \author Haegin Han
 //
 
-#include "G4UIdirectory.hh"
-#include "G4UIcmdWithAnInteger.hh"
-#include "G4UIcmdWithAString.hh"
-#include "G4RunManager.hh"
-#include <sstream>
-#include <vector>
-#include "RunAction.hh"
-#include "ParallelPhantomMessenger.hh"
-#include "ParallelPhantom.hh"
+#ifndef PhysicsList_h
+#define PhysicsList_h 1
+
+#include "G4VModularPhysicsList.hh"
+#include "globals.hh"
 #include "G4SystemOfUnits.hh"
-#include "G4RunManager.hh"
+#include "G4UnitsTable.hh"
+#include "G4EmLivermorePhysics.hh"
+#include "G4DecayPhysics.hh"
+#include "G4RadioactiveDecayPhysics.hh"
 
-ParallelPhantomMessenger::ParallelPhantomMessenger(ParallelPhantom* _phantom)
-:G4UImessenger(), fPhantom(_phantom)
+class G4VPhysicsConstructor;
+
+// *********************************************************************
+// Please note that only basic physics were registered in this
+// ModularPhysicsList, and rather precise models were used for the
+// production of dose coefficients provided in the ICRP Publication.
+// -- SetCuts: cut values were set as default values. This can be
+//             modified according to specific purposes or applications.
+// *********************************************************************
+
+class PhysicsList: public G4VModularPhysicsList
 {
-	fPhantomDir = new G4UIdirectory("/phantom/");
-	fDeformCmd = new G4UIcmdWithAnInteger("/phantom/frame", this);
-	fDataReadCmd = new G4UIcmdWithAString("/phantom/data", this);
+public:
+	PhysicsList();
+	virtual ~PhysicsList();
 
-}
+	virtual void SetCuts();
+};
 
-ParallelPhantomMessenger::~ParallelPhantomMessenger() {
-	delete fPhantomDir;
-	delete fDeformCmd; 
-	delete fDataReadCmd;
-}
-
-void ParallelPhantomMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
-{
-	if(command == fDeformCmd){
-		G4int i = fDeformCmd->GetNewIntValue(newValue);
-		fPhantom->Deform(vQ_vec[i], roots[i]);
-	}
-	else if(command == fDataReadCmd){
-		ReadPostureData(newValue);
-	}
-}
-
-void ParallelPhantomMessenger::ReadPostureData(G4String fileName)
-{
-	ifstream ifs(fileName);
-	if(!ifs.is_open())
-	{
-		cout<<"fileName is not open"<<endl;
-	}
-	vQ_vec.clear();
-	roots.clear();
-
-	G4String line;
-	while(getline(ifs, line))
-	{
-		if(line.empty()) continue;
-		stringstream ss(line);
-		G4double x, y, z, w;
-		ss>>x>>y>>z;
-		roots.push_back(Vector3d(x,y,z)*cm);
-		RotationList vQ;
-		for(int i=0;i<22;i++)
-		{
-			ss>>w>>x>>y>>z;
-			vQ.push_back(Quaterniond(w, x, y, z));
-		}
-		vQ_vec.push_back(vQ);
-	}
-	ifs.close();
-}
+#endif

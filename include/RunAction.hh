@@ -42,12 +42,12 @@
 
 #include "PrimaryGeneratorAction.hh"
 #include "Run.hh"
-#include "TETModelImport.hh"
+#include "ParallelPhantom.hh"
 
 class RunAction : public G4UserRunAction
 {
 public:
-	RunAction(TETModelImport* tetData, G4String output, G4Timer* initTimer);
+	RunAction(std::vector<ParallelPhantom*> phantom, G4Timer* initTimer);
 	virtual ~RunAction();
 
 public:
@@ -58,13 +58,12 @@ public:
 	void PrintResult(std::ostream &out);
   
 private:
-	TETModelImport* tetData;
+	std::vector<ParallelPhantom*> phantoms;
 	Run*            fRun;
 	G4int           numOfEvent;
-	G4int           runID;
-	G4String        outputFile;
 	G4Timer*        initTimer;
 	G4Timer*        runTimer;
+	G4int           frameID;
 };
 
 #endif

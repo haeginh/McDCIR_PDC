@@ -23,48 +23,42 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// TETParameterisation.cc
-// \file   MRCP_GEANT4/External/src/TETParameterisation.cc
-// \author Haegin Han
-//
 
-#include "TETParameterisation.hh"
-#include "G4LogicalVolume.hh"
-#include "G4VisExecutive.hh"
-#include "G4RunManager.hh"
 
-TETParameterisation::TETParameterisation(ParallelPhantom* _phantom)
-: G4VPVParameterisation(), phantom(_phantom)
+#ifndef DRFScorer_h
+#define DRFScorer_h 1
+
+#include "G4VPrimitiveScorer.hh"
+#include "G4THitsMap.hh"
+#include "ParallelPhantom.hh"
+
+class BoneScorer : public G4VPrimitiveScorer
 {
-}
+   public: // with description
+      BoneScorer(G4String name,ParallelPhantom*);
+      virtual ~BoneScorer();
 
-TETParameterisation::~TETParameterisation()
-{}
+  protected: // with description
+      virtual G4int GetIndex(G4Step*);
+      virtual G4bool ProcessHits(G4Step*, G4TouchableHistory*);
 
-G4VSolid* TETParameterisation::ComputeSolid(
-    		       const G4int copyNo, G4VPhysicalVolume* )
-{
-	// return G4Tet*
-    return phantom->GetTet(copyNo);
-}
+  public:
+      virtual void Initialize(G4HCofThisEvent*);
+      virtual void EndOfEvent(G4HCofThisEvent*);
+      virtual void clear();
 
-void TETParameterisation::ComputeTransformation(
-                   const G4int,G4VPhysicalVolume*) const
-{}
+  private:
 
-G4Material* TETParameterisation::ComputeMaterial(const G4int copyNo,
-                                                 G4VPhysicalVolume* phy,
-                                                 const G4VTouchable* )
-{
-   // set the colour for each organ if visualization is required
-	if(phantom->IsForVis())
-	{
-		phy->GetLogicalVolume()->SetVisAttributes(phantom->GetVisAtt(copyNo));
-		phy->GetLogicalVolume()->SetMaterial(phantom->GetMateiral(copyNo));
-	}
+      ParallelPhantom* phantom;
+      G4int FindIndexfromEnergyBin(G4double energy);
+      std::pair<G4double, G4double> GetDRFdose(G4double energy, G4double cellFlux, G4int organID);
+    //   G4double GetBSdose(G4double energy, G4double cellFlux, G4int organID);
 
-	// // return the material data for each material index
-	return phantom->GetMateiral(copyNo);
-}
+      G4int HCID;
+      G4THitsMap<G4double>* EvtMap;
+    //   std::vector<G4double> energyBin;
 
+      G4ParticleDefinition* gamma;
+};
+#endif
 

@@ -42,8 +42,9 @@
 #include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
 #include "DetectorMessenger.hh"
+#include "G4GeometryManager.hh"
 #include "ParallelPhantom.hh"
-#include "ParallelGlass.hh"
+// #include "ParallelGlass.hh"
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -54,21 +55,15 @@ public:
     virtual G4VPhysicalVolume* Construct();
 
 	// pre init setting
-	void SetIsoCenter(G4ThreeVector iso){
-		carm_isocenter = iso;
-		// pv_frame->SetTranslation(frame_default-carm_isocenter+table_trans);
-		// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(iso);
-		((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(iso);
-	}
 	void SetTableRefPos(G4ThreeVector ref){table_ref_pos = ref;}
 
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
 	//_table_trans is the translation from when rotation center is at the center of the table
 	{  				
-		G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
+		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
 		table_trans = _table_trans;
-		G4ThreeVector frameOrigin = frame_default - carm_isocenter + table_trans; //before rotation
+		G4ThreeVector frameOrigin = frame_default + table_trans; //before rotation
 		if(table_pivot_angle==0) 
 		{
 			pv_frame->SetTranslation(frameOrigin);
@@ -78,7 +73,7 @@ public:
 		frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
 		frame_rotation_matrix->rotateZ(-table_pivot_angle);
 		pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
-		G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
+		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
 	}
 
 	void UseCurtain(G4bool use = true)
@@ -88,6 +83,52 @@ public:
 	}
 
 	void SetPatientName(G4String _patient){patient = _patient;}
+
+	// manipulate parallelworlds
+	G4bool InstallPhantom(G4int parallelID, RotationList vQ, RowVector3d rootC)
+	{
+		if(parallelID>GetNumberOfParallelWorld()) // # of parall world = max_num_of_people + 1(glass)
+		{
+			G4String msg = "Wrong phantom ID: "+std::to_string(parallelID);
+			G4Exception("DetectorConstruction::InstallPhantom", "", JustWarning, msg.c_str());
+			return false;
+		}
+		auto phantom = dynamic_cast<ParallelPhantom*>(GetParallelWorld(parallelID));
+		if(!phantom->Deform(vQ, rootC)) phantom->InstallPhantomBox();
+	}
+	G4bool InstallPhantom(G4int parallelID)
+	{
+		if(parallelID>GetNumberOfParallelWorld()) // # of parall world = max_num_of_people + 1(glass)
+		{
+			G4String msg = "Wrong phantom ID: "+std::to_string(parallelID);
+			G4Exception("DetectorConstruction::InstallPhantom", "", JustWarning, msg.c_str());
+			return false;
+		}
+		auto phantom = dynamic_cast<ParallelPhantom*>(GetParallelWorld(parallelID));
+		if(!phantom->InstallPhantomBox())
+		{
+			G4Exception("DetectorConstruction::InstallPhantom", "", JustWarning, "phantom already installed");
+			return false;
+		}
+		return true;		
+	}
+	G4bool UninstallPhantom(G4int parallelID)
+	{
+		if(parallelID>GetNumberOfParallelWorld()) // # of parall world = max_num_of_people + 1(glass)
+		{
+			G4String msg = "Wrong phantom ID: "+std::to_string(parallelID);
+			G4Exception("DetectorConstruction::UninstallPhantom", "", JustWarning, msg.c_str());
+			return false;
+		}
+		auto phantom = dynamic_cast<ParallelPhantom*>(GetParallelWorld(parallelID));
+		if(!phantom->RemovePhantomBox())
+		{
+			G4Exception("DetectorConstruction::InstallPhantom", "", JustWarning, "phantom already uninstalled");
+			return false;
+		}
+		return true;
+	}
+
 
 private:
     void SetupWorldGeometry();
@@ -99,13 +140,14 @@ private:
 
 	G4LogicalVolume*   worldLogical;
 	G4VPhysicalVolume* worldPhysical;
-	G4ThreeVector carm_isocenter;
 
+	G4double isoZ;
 	// Operating Table
 	G4VPhysicalVolume* pv_frame;
 	G4LogicalVolume* lv_curtain;
 	G4ThreeVector table_ref_pos; // right top corner
 	G4ThreeVector table_rotation_center;//, table_default_trans; //program input (relative coordinate to ChArUco)
+	G4ThreeVector table_size;
 	G4RotationMatrix* frame_rotation_matrix; //inverse
 	G4ThreeVector frame_default, table_trans;
 	G4String patient;
@@ -115,7 +157,6 @@ private:
 
 	//messenger
 	DetectorMessenger* messenger;
-	
 };
 
 

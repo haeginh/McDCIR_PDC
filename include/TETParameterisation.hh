@@ -31,8 +31,7 @@
 #ifndef TETParameterisation_h
 #define TETParameterisation_h 1
 
-#include "TETModelImport.hh"
-
+#include "ParallelPhantom.hh"
 #include "globals.hh"
 #include "G4VPVParameterisation.hh"
 #include "G4VSolid.hh"
@@ -42,19 +41,12 @@
 #include <map>
 
 class G4VPhysicalVolume;
-
-// *********************************************************************
-// This class defines the phantom geometry by using G4PVParameterisation
-// class.
-// -- ComputeSolid: return the G4Tet* for each element
-// -- ComputeMaterial: return the G4Material* corresponding to each organ,
-//                     and set the colours for visualization purposes
-// *********************************************************************
+class ParallelPhantom;
 
 class TETParameterisation : public G4VPVParameterisation
 {
   public:
-    TETParameterisation(TETModelImport* tetData);
+    TETParameterisation(ParallelPhantom* phantom);
     virtual ~TETParameterisation();
     
     virtual G4VSolid* ComputeSolid(
@@ -68,10 +60,9 @@ class TETParameterisation : public G4VPVParameterisation
                                         const G4VTouchable*);
 
   private:
-    TETModelImport*                    tetData;
-    G4Material* tissue;
-    std::map<G4int, G4VisAttributes*>  visAttMap;
-    G4bool                             isforVis;
+    ParallelPhantom*                   phantom;
+    // G4Material* tissue;
+    // G4bool                             isforVis;
 };
 
 #endif

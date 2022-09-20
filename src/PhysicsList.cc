@@ -23,43 +23,39 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// ParallelMessenger.cc
+// PhysicsList.cc
+// \file   MRCP_GEANT4/External/src/PhysicsList.cc
 // \author Haegin Han
 //
 
-#ifndef SRC_ParallelMessenger_HH_
-#define SRC_ParallelMessenger_HH_ 1
+#include "PhysicsList.hh"
+#include "G4HadronPhysicsFTFP_BERT.hh"
 
-#include "globals.hh"
-#include "G4UImessenger.hh"
-#include "functions.h"
-
-class G4UIdirectory;
-class G4UIcmdWithAnInteger;
-class G4UIcmdWithAString;
-class ParallelPhantom;
-
-typedef
-  std::vector<Eigen::Vector3d,Eigen::aligned_allocator<Eigen::Vector3d> >
-  VectorList;
-class ParallelPhantomMessenger: public G4UImessenger
+PhysicsList::PhysicsList()
+:G4VModularPhysicsList()
 {
-public:
-	ParallelPhantomMessenger(ParallelPhantom* phantom);
-	virtual ~ParallelPhantomMessenger();
+	G4int verb=0;
+	SetVerboseLevel(verb);
 
-	virtual void SetNewValue(G4UIcommand*, G4String);
+  	// Hadron Elastic scattering
 
-	void ReadPostureData(G4String fileName);
+	RegisterPhysics(new G4HadronPhysicsFTFP_BERT);
 
-private:
-	ParallelPhantom* fPhantom;
-	G4UIdirectory*   fPhantomDir;
-	G4UIcmdWithAnInteger* fDeformCmd; 
-	G4UIcmdWithAString* fDataReadCmd; 
+	// EM physics
+	RegisterPhysics(new G4EmLivermorePhysics());
 
-	vector<RotationList> vQ_vec;
-	VectorList roots;
-};
+	// Decay
+	RegisterPhysics(new G4DecayPhysics());
 
-#endif
+	// Radioactive decay
+	RegisterPhysics(new G4RadioactiveDecayPhysics());
+}
+
+PhysicsList::~PhysicsList()
+{}
+
+void PhysicsList::SetCuts()
+{
+	SetCutsWithDefault();
+}
+

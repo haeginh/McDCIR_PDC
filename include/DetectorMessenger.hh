@@ -33,13 +33,45 @@
 
 #include "globals.hh"
 #include "G4UImessenger.hh"
+#include <Eigen/Geometry>
+using namespace Eigen;
+
+typedef
+  std::vector<Eigen::Quaterniond,Eigen::aligned_allocator<Eigen::Quaterniond> >
+  RotationList; 
+struct Body
+{
+    // clock_t time;
+    RotationList posture = RotationList(18);
+    MatrixXd jointC = MatrixXd::Zero(24, 3);
+};
+
+struct DataSet
+{
+    bool glassChk;
+    Affine3d glass_aff = Affine3d::Identity();
+    std::map<G4int, Body> bodyMap;
+    RowVector3f cArm; // rot, ang, sid
+    RowVector3f bed; // long, lat, height
+    int kVp;
+    float mA;
+    int FD;
+    float dap;
+    bool beamOn;
+    clock_t time;
+    // RotationList posture = RotationList(18);
+    // bool bodyIn;
+    // MatrixXd jointC = MatrixXd::Zero(24, 3);
+};
 
 class G4UIdirectory;
 class G4UIcmdWith3Vector;
+class G4UIcmdWithAString;
 class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithoutParameter;
 class G4UIcmdWithABool;
+class G4UIcmdWithAnInteger;
 class DetectorConstruction;
 
 class DetectorMessenger: public G4UImessenger
@@ -49,11 +81,11 @@ public:
 	virtual ~DetectorMessenger();
 
 	virtual void SetNewValue(G4UIcommand*, G4String);
+	DataSet ReadAFrameData(std::vector<G4float>);
 
 private:
 	DetectorConstruction* fDet;
 	G4UIdirectory*        fMachineDir;
-	G4UIcmdWith3VectorAndUnit* fIsoCenterCmd; //isocenter position in ref. coord. (ChArUco)
 	G4UIcmdWith3VectorAndUnit* fTableRefCmd; //table ref. position in ref. coord (ChArUco)
 	G4UIcmdWith3VectorAndUnit* fTableTransCmd; //trans
 	G4UIcmdWithADoubleAndUnit* fTablePivotCmd; //pivot
@@ -64,8 +96,22 @@ private:
 	G4UIcmdWithoutParameter*   fRemoveGlassCmd;
 	G4UIcmdWithABool*          fCurtainCmd;
 
+	G4UIdirectory*         fPhantomDir;
+	G4UIcmdWithAnInteger*  fInstallPhantom;
+	G4UIcmdWithAnInteger*  fUninstallPhantom;
+
+	G4UIdirectory*        fRecordDir;
+	G4UIcmdWithAString*        fReadRecordData;
+	G4UIcmdWithAnInteger*      fSetFrameFromRecordData;
+
+	
+
 	G4ThreeVector tableTrans, glassTrans, glassAxis;
 	G4double tablePivot, glassTheta;
+
+    std::vector<std::vector<G4float>> recordData;
+
+	G4int maxPeople;
 };
 
 #endif

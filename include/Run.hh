@@ -32,22 +32,39 @@
 #include "G4Event.hh"
 #include "G4THitsMap.hh"
 #include "G4SDManager.hh"
+#include "ParallelPhantom.hh"
+#include <Eigen/Core>
 
-typedef std::map<G4int, std::pair<G4double, G4double>> EDEPMAP;
+typedef std::map<G4int ,std::map<G4int, std::pair<G4double, G4double>>> EDEPMAP;
 
 class Run : public G4Run
 {
 public:
-	Run();
+	Run(std::vector<ParallelPhantom*>);
 	virtual ~Run();
 
 	virtual void RecordEvent(const G4Event*);
     virtual void Merge(const G4Run*);
 
-    EDEPMAP* GetEdepMap() {return &edepMap;};
+    Eigen::VectorXd* GetDoseVal(G4int idx) {return &(doseVals[idx]);}
+    Eigen::VectorXd* GetSkinDoseVal(G4int idx) {return &(skinDoses[idx]);}
+    Eigen::ArrayXd* GetBoneDoseVal(G4int idx) {return &(boneDose[idx]);}
+    Eigen::VectorXd* GetDoseVal2(G4int idx) {return &(doseVals2[idx]);}
+    Eigen::VectorXd* GetSkinDoseVal2(G4int idx) {return &(skinDoses2[idx]);}
+    Eigen::ArrayXd* GetBoneDoseVal2(G4int idx) {return &(boneDose2[idx]);}
+    G4double GetEffDose(G4int idx) {return effVal[idx];}
+    G4double GetEffDose2(G4int idx) {return effVal2[idx];}
 
 private:
-	EDEPMAP edepMap;
+	std::vector<ParallelPhantom*> phantoms;
+	G4int maxNum;
+	// EDEPMAP organDose, boneDose;
+	std::vector<Eigen::VectorXd> doseVals, doseVals2, skinDoses, skinDoses2;
+	std::vector<Eigen::ArrayXd> boneDose, boneDose2;
+	std::vector<G4int> effVal, effVal2;
+	std::vector<G4int> collIDs, collIDs_bone;
+	std::vector<std::vector<G4int>> boneVec;
 };
 
 #endif
+ 

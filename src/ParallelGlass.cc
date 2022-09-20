@@ -74,11 +74,11 @@ void ParallelGlass::Construct()
 
   G4Box* glassSolid = new G4Box("glass", glassDim.x(), glassDim.y(), glassDim.z());
   lv_glass = new G4LogicalVolume(glassSolid, 0, "glassLV");
-  pv_glass = new G4PVPlacement(new G4RotationMatrix(), G4ThreeVector(), lv_glass, "glassPV", GetWorld()->GetLogicalVolume(), false, 0);
+  glass_rotation_matrix = new G4RotationMatrix;
+  pv_glass = new G4PVPlacement(glass_rotation_matrix, G4ThreeVector(), lv_glass, "glassPV", GetWorld()->GetLogicalVolume(), false, 0);
   G4VisAttributes* vis = new G4VisAttributes();
   vis->SetForceWireframe(true);
   pv_glass->GetLogicalVolume()->SetVisAttributes(vis);
-  pv_glass->SetTranslation(-isocenter);
 
   ifstream ifsEle(glassFile + ".ele");
   ifsEle>>num>>tmp>>tmp;

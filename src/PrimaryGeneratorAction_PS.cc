@@ -23,48 +23,47 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// TETParameterisation.cc
-// \file   MRCP_GEANT4/External/src/TETParameterisation.cc
-// \author Haegin Han
-//
 
-#include "TETParameterisation.hh"
-#include "G4LogicalVolume.hh"
-#include "G4VisExecutive.hh"
-#include "G4RunManager.hh"
+#include "PrimaryGeneratorAction_PS.hh"
+#include "G4ParticleTable.hh"
+#include <fstream>
 
-TETParameterisation::TETParameterisation(ParallelPhantom* _phantom)
-: G4VPVParameterisation(), phantom(_phantom)
+PrimaryGeneratorAction_PS::PrimaryGeneratorAction_PS()
+	: G4VUserPrimaryGeneratorAction(), nThRotation(0)
 {
+	fPrimary = new G4ParticleGun();
+	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
+
+	messenger = new PrimaryMessenger_PS(this);
 }
 
-TETParameterisation::~TETParameterisation()
-{}
-
-G4VSolid* TETParameterisation::ComputeSolid(
-    		       const G4int copyNo, G4VPhysicalVolume* )
+PrimaryGeneratorAction_PS::~PrimaryGeneratorAction_PS()
 {
-	// return G4Tet*
-    return phantom->GetTet(copyNo);
+	delete fPrimary;
+	delete messenger;
 }
 
-void TETParameterisation::ComputeTransformation(
-                   const G4int,G4VPhysicalVolume*) const
-{}
-
-G4Material* TETParameterisation::ComputeMaterial(const G4int copyNo,
-                                                 G4VPhysicalVolume* phy,
-                                                 const G4VTouchable* )
+void PrimaryGeneratorAction_PS::GeneratePrimaries(G4Event *anEvent)
 {
-   // set the colour for each organ if visualization is required
-	if(phantom->IsForVis())
+	if(anEvent->GetEventID()>(nThRotation+1)*PSnum)
 	{
-		phy->GetLogicalVolume()->SetVisAttributes(phantom->GetVisAtt(copyNo));
-		phy->GetLogicalVolume()->SetMaterial(phantom->GetMateiral(copyNo));
+		nThRotation++;
 	}
-
-	// // return the material data for each material index
-	return phantom->GetMateiral(copyNo);
+	G4int start = (anEvent->GetEventID()-nThRotation*PSnum)*7;
+	fPrimary->SetParticleEnergy(data[start]);
+	fPrimary->SetParticlePosition(G4ThreeVector(data[start+1], data[start+2], data[start+3]));
+	fPrimary->SetParticleMomentumDirection(G4ThreeVector(data[start+4], data[start+5], data[start+6]));
+	fPrimary->GeneratePrimaryVertex(anEvent);
 }
 
-
+void PrimaryGeneratorAction_PS::SetPS(G4String name)
+{
+	data.clear();
+	std::ifstream ifs(name, std::ios::binary);
+	G4int num(0);
+	ifs.read((char*) &num, sizeof(G4int));
+	data.resize(num*7);
+	ifs.read((char*) &data[0], num*7*sizeof(G4double));
+	G4cout<<"read phase-space file for "<<num<<" particles"<<G4endl;
+	ifs.close();
+}

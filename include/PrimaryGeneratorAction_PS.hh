@@ -23,48 +23,63 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
-// TETParameterisation.cc
-// \file   MRCP_GEANT4/External/src/TETParameterisation.cc
-// \author Haegin Han
 //
 
-#include "TETParameterisation.hh"
-#include "G4LogicalVolume.hh"
-#include "G4VisExecutive.hh"
-#include "G4RunManager.hh"
+#ifndef PrimaryGeneratorAction_PS_hh
+#define PrimaryGeneratorAction_PS_hh 1
 
-TETParameterisation::TETParameterisation(ParallelPhantom* _phantom)
-: G4VPVParameterisation(), phantom(_phantom)
+using namespace std;
+
+#include "G4VUserPrimaryGeneratorAction.hh"
+#include "globals.hh"
+#include "G4Event.hh"
+#include "G4ParticleGun.hh"
+#include "G4UImessenger.hh"
+
+class PrimaryGeneratorAction_PS : public G4VUserPrimaryGeneratorAction
 {
-}
+public:
+  PrimaryGeneratorAction_PS();
+  virtual ~PrimaryGeneratorAction_PS();
 
-TETParameterisation::~TETParameterisation()
-{}
+  virtual void GeneratePrimaries(G4Event *);
 
-G4VSolid* TETParameterisation::ComputeSolid(
-    		       const G4int copyNo, G4VPhysicalVolume* )
+  void SetPS(G4String name); //peakE in keV
+
+private:
+  G4ParticleGun *fPrimary;
+  G4UImessenger *messenger;
+  G4int nThRotation, PSnum;
+  vector<G4double> data;
+};
+
+#include "G4UIcmdWithAString.hh"
+class PrimaryMessenger_PS : public G4UImessenger
 {
-	// return G4Tet*
-    return phantom->GetTet(copyNo);
-}
+public:
+  PrimaryMessenger_PS(PrimaryGeneratorAction_PS *_primary)
+      : G4UImessenger(), fPrimary(_primary)
+  {
+    fBeamDir = new G4UIdirectory("/beam/");
+    fPSCmd = new G4UIcmdWithAString("/beam/PS", this);
+  };
+  virtual ~PrimaryMessenger_PS()
+  {
+    delete fPSCmd;
+    delete fBeamDir;
+  };
+  virtual void SetNewValue(G4UIcommand *command, G4String newValue)
+  {
+    if (command == fPSCmd)
+    {
+      fPrimary->SetPS(newValue);
+    }
+  };
 
-void TETParameterisation::ComputeTransformation(
-                   const G4int,G4VPhysicalVolume*) const
-{}
+private:
+  PrimaryGeneratorAction_PS *fPrimary;
+  G4UIdirectory *fBeamDir;
+  G4UIcmdWithAString *fPSCmd;
+};
 
-G4Material* TETParameterisation::ComputeMaterial(const G4int copyNo,
-                                                 G4VPhysicalVolume* phy,
-                                                 const G4VTouchable* )
-{
-   // set the colour for each organ if visualization is required
-	if(phantom->IsForVis())
-	{
-		phy->GetLogicalVolume()->SetVisAttributes(phantom->GetVisAtt(copyNo));
-		phy->GetLogicalVolume()->SetMaterial(phantom->GetMateiral(copyNo));
-	}
-
-	// // return the material data for each material index
-	return phantom->GetMateiral(copyNo);
-}
-
-
+#endif

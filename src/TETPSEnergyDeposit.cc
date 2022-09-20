@@ -30,17 +30,17 @@
 
 #include "TETPSEnergyDeposit.hh"
 
-TETPSEnergyDeposit::TETPSEnergyDeposit(G4String name, TETModelImport* _tetData)
-  :G4PSEnergyDeposit(name), tetData(_tetData)
+TETPSEnergyDeposit::TETPSEnergyDeposit(G4String name, ParallelPhantom* _phantom)
+  :G4PSEnergyDeposit(name), phantom(_phantom)
 {}
 
 TETPSEnergyDeposit::~TETPSEnergyDeposit()
-{}
+{
+}
 
 G4int TETPSEnergyDeposit::GetIndex(G4Step* aStep)
 {
-
 	// return the organ ID (= material index)
   G4int copyNo = aStep->GetPreStepPoint()->GetTouchable()->GetCopyNumber();
-  return tetData->GetMaterialIndex(copyNo);
+  return phantom->GetOrganID(copyNo);
 }

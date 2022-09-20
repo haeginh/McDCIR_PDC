@@ -34,7 +34,7 @@
 using namespace std;
 
 DetectorConstruction::DetectorConstruction()
-:worldLogical(0) ,worldPhysical(0), carm_isocenter(1120 * mm, 600 * mm, 1135 * mm), table_ref_pos(87*cm, 130*cm, 78.5*cm),//table_default_trans(1.12*m, -0.3*m, 0.785*m),
+:worldLogical(0) ,worldPhysical(0), isoZ(113.5*cm), table_ref_pos(-229.35*mm, 447.5*mm, -184.285*mm), table_size(500*mm, 3115*mm, 1.43*mm),//table_default_trans(1.12*m, -0.3*m, 0.785*m),
 table_rotation_center(1.12*m, -0.3*m, 0.785*m), head_margin(10.*cm), curtain_margin(10.*cm)
 {
 	// table_rotation_center = table_default_trans;
@@ -59,7 +59,6 @@ DetectorConstruction::~DetectorConstruction()
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
 	// ((ParallelGlass*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
-	((ParallelPhantom*)GetParallelWorld(0))->SetIsoCenter(carm_isocenter);
 	SetupWorldGeometry();
 	ConstructOperatingTable();
 	// ConstructPbGlass();
@@ -83,15 +82,14 @@ void DetectorConstruction::SetupWorldGeometry()
 	// worldLogical->SetVisAttributes(va_World);
 
 	// Define floor
-	// G4double floorZ = 0 * cm;
-	// G4Material* concrete = G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE");
-	// G4Box* floor = new G4Box("floor", worldHalfX, worldHalfY, (floorZ+worldHalfZ)*0.5);
-	// G4LogicalVolume* lv_floor = new G4LogicalVolume(floor, concrete, "lv_floor");
-	// new G4PVPlacement(0, G4ThreeVector(0,0,(-worldHalfZ)+(floorZ+worldHalfZ)*0.5), lv_floor, "pv_floor", worldLogical,0,0);
+	G4Material* concrete = G4NistManager::Instance()->FindOrBuildMaterial("G4_CONCRETE");
+	G4Box* floor = new G4Box("floor", worldHalfX, worldHalfY, (worldHalfZ-isoZ)*0.5);
+	G4LogicalVolume* lv_floor = new G4LogicalVolume(floor, concrete, "lv_floor");
+	new G4PVPlacement(0, G4ThreeVector(0,0,(-worldHalfZ)+(worldHalfZ-isoZ)*0.5), lv_floor, "pv_floor", worldLogical,0,0);
 
-	// G4VisAttributes* vis_floor  = new G4VisAttributes(G4Colour(0.8,0.8,0.8,0.5));
-	// vis_floor->SetForceAuxEdgeVisible();
-	// lv_floor->SetVisAttributes(vis_floor);
+	G4VisAttributes* vis_floor  = new G4VisAttributes(G4Colour(0.8,0.8,0.8,0.5));
+	vis_floor->SetForceAuxEdgeVisible();
+	lv_floor->SetVisAttributes(vis_floor);
 }
 
 
@@ -116,7 +114,7 @@ void DetectorConstruction::ConstructOperatingTable()
 	// lv_frame->SetVisAttributes(G4VisAttributes::GetInvisible());
 	frame_rotation_matrix = new G4RotationMatrix();
 	frame_default = table_ref_pos - G4ThreeVector(-frameHalfX + curtainHalfSize.x()*2, frameHalfY, -frameHalfZ+curtainHalfSize.z()*2.);
-	pv_frame = 	new G4PVPlacement(frame_rotation_matrix, frame_default - carm_isocenter, lv_frame, "pv_frame", worldLogical, false, 1);
+	pv_frame = 	new G4PVPlacement(frame_rotation_matrix, frame_default, lv_frame, "pv_frame", worldLogical, false, 1);
 
 	// phantom box
 	G4ThreeVector phanPos;
@@ -127,7 +125,10 @@ void DetectorConstruction::ConstructOperatingTable()
 
 	// Operating table
 	G4Box* table = new G4Box("sol_table", tableHalfSize.x(), tableHalfSize.y(), tableHalfSize.z());
-	G4LogicalVolume* lv_table = new G4LogicalVolume(table, G4NistManager::Instance()->FindOrBuildMaterial("G4_Al"), "lv_table");
+	G4Material* table_mat = new G4Material("tableMat", 5.5382*g/cm3, 2);
+	table_mat->AddElement(G4NistManager::Instance()->FindOrBuildElement(6), 0.5127);
+	table_mat->AddElement(G4NistManager::Instance()->FindOrBuildElement(13), 0.4873);
+	G4LogicalVolume* lv_table = new G4LogicalVolume(table, table_mat, "lv_table");
 	G4ThreeVector tablePos;
 	tablePos.setX(-frameHalfX + curtainHalfSize.x()*2. + tableHalfSize.x());
 	tablePos.setZ(-frameHalfZ + curtainHalfSize.z()*2. - tableHalfSize.z());
@@ -149,9 +150,10 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 {
 	Eigen::MatrixXd V;
 	G4cout<<"Read "+_patient+".node..."<<flush;
-	ifstream ifs("./phantoms/"+_patient+".node");
+	G4String dir = std::getenv("DCIR_PHANTOM_DIR");
+	ifstream ifs(dir+_patient+".node");
 	if(!ifs.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".node!"<<endl;
+		cout<<"there is no "+dir+_patient+".node!"<<endl;
 		exit(100);
 	}
 	int rowV, tmp;
@@ -179,9 +181,9 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 	
 	//read materials
 	G4cout<<"Read "+_patient+".material..."<<flush;
-	ifstream ifsMat("./phantoms/"+_patient+".material");
+	ifstream ifsMat(dir+_patient+".material");
 	if(!ifsMat.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".material!"<<endl;
+		cout<<"there is no "+dir+_patient+".material!"<<endl;
 		exit(100);
 	}
 	map<int, G4Material*> matMap;
@@ -228,9 +230,9 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 
 	//construc tets
 	G4cout<<"Read "+_patient+".ele..."<<flush;
-	ifstream ifsEle("./phantoms/"+_patient+".ele");
+	ifstream ifsEle(dir+_patient+".ele");
 	if(!ifsEle.is_open()){
-		cout<<"there is no ./phantoms/"+_patient+".ele!"<<endl;
+		cout<<"there is no " + dir +_patient+".ele!"<<endl;
 		exit(100);
 	}
 	int numT;
