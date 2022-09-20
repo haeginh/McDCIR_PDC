@@ -87,6 +87,7 @@ public:
   PhantomData*       phantomData;
   Eigen::ArrayXd    doseMass;
 private:
+  G4String phantomDir;
   G4bool fConstructed;
 
   // Radiologist

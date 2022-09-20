@@ -134,7 +134,7 @@ public:
 
 private:
 	void SetTableSize(G4ThreeVector size){ // full size
-		table_half_size = size*0.5;
+		table_size = size;
 	}
 
     void SetupWorldGeometry();
