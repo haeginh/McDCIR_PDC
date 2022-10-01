@@ -23,49 +23,39 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
+// PhysicsList.hh
+// \file   MRCP_GEANT4/External/include/PhysicsList.hh
+// \author Haegin Han
 //
-/// \file MeshSD.hh
-/// \brief Definition of the MeshSD class
 
-#ifndef MeshSD_h
-#define MeshSD_h 1
+#ifndef PhysicsList_h
+#define PhysicsList_h 1
 
-#include "G4VSensitiveDetector.hh"
+#include "G4VModularPhysicsList.hh"
+#include "globals.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4UnitsTable.hh"
+#include "G4EmLivermorePhysics.hh"
+#include "G4DecayPhysics.hh"
+#include "G4RadioactiveDecayPhysics.hh"
 
-#include "G4THitsMap.hh"
+class G4VPhysicsConstructor;
 
-#include <vector>
+// *********************************************************************
+// Please note that only basic physics were registered in this
+// ModularPhysicsList, and rather precise models were used for the
+// production of dose coefficients provided in the ICRP Publication.
+// -- SetCuts: cut values were set as default values. This can be
+//             modified according to specific purposes or applications.
+// *********************************************************************
 
-class G4Step;
-class G4HCofThisEvent;
-
-class MeshSD : public G4VSensitiveDetector
+class PhysicsList: public G4VModularPhysicsList
 {
-  public:
-    MeshSD(const G4String& name, G4int i, G4int j, G4int k, G4double cellVol);
-    virtual ~MeshSD();
+public:
+	PhysicsList();
+	virtual ~PhysicsList();
 
-    virtual void   Initialize(G4HCofThisEvent* hitCollection);
-    virtual G4bool ProcessHits(G4Step* step, G4TouchableHistory* history);
-    virtual void   EndOfEvent(G4HCofThisEvent* hitCollection);
-
-    void SetDoseCoefficients(G4String fileN);
-
-  private:
-    void CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDose);
-
-  private:
-    G4THitsMap<G4float>* fHitsMapS;  //skin dose
-    // G4THitsMap<G4ThreeVector>* fHitsMapV;  //vector
-    G4THitsMap<G4float>* fHitsMapE; //lens dose
-    // G4THitsMap<G4float>* fHitsMapL; //tmp
-    G4int    ni, nj, nk;
-    std::vector<G4float> energyVec;
-    // std::vector<G4float> skinDvec, lensDvec;
-    // std::vector<G4float> skinSlope, lensSlope;
-    std::map<G4float, std::pair<G4float, G4float>> dcMap;
-    G4ParticleDefinition* gamma;
+	virtual void SetCuts();
 };
 
 #endif
-

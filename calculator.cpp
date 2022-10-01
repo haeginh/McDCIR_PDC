@@ -3,7 +3,8 @@
 #include "G4RunManagerFactory.hh"
 
 #include "DetectorConstruction.hh"
-#include "G4PhysListFactory.hh"
+// #include "G4PhysListFactory.hh"
+#include "PhysicsList.hh"
 #include "G4StepLimiterPhysics.hh"
 #include "G4ParallelWorldPhysics.hh"
 #include "ActionInitialization.hh"
@@ -56,12 +57,11 @@ int main(int argc, char** argv)
 
 	// Set mandatory initialization classes
 	auto det = new DetectorConstruction();
-	det->SetPatientName("Patient_M_H175M83800_fixed");
+	det->SetPatientName("Patient_MRCP_AM");
 	det->RegisterParallelWorld(new ParallelMesh("parallel"));
 	runManager->SetUserInitialization(det);
-	auto factory = new G4PhysListFactory();
-    G4VModularPhysicsList* physicsList = factory->GetReferencePhysList("FTFP_BERT_LIV");
-	physicsList->RegisterPhysics(new G4StepLimiterPhysics());
+	auto physicsList = new PhysicsList();
+    physicsList->RegisterPhysics(new G4StepLimiterPhysics());
 	physicsList->RegisterPhysics(new G4ParallelWorldPhysics("parallel"));
 	runManager->SetUserInitialization(physicsList);
 	runManager->SetUserInitialization(new ActionInitialization());

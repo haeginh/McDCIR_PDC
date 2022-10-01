@@ -93,5 +93,6 @@ void Run::Merge(const G4Run* run)
         // doseMapL[i]  += localMapL[i];
     }
 //    dap += localRun->dap;
+    factor = localRun->factor;
     G4Run::Merge(run);
 }

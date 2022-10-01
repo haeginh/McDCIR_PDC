@@ -34,7 +34,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 	fPrimary = new G4ParticleGun();
 	fPrimary->SetParticleDefinition(G4ParticleTable::GetParticleTable()->FindParticle("gamma"));
 
-	FlatDetectorInitialization(DetectorZoomField::FD48, 119.5 * cm); // FD, SID
+	FlatDetectorInitialization(DetectorZoomField::FD48, 120 * cm); // FD, SID
+	SetProfile("../profile20220825.txt");
 	// SetSourceEnergy(80);
 	// G4double carm_primary = 20 * deg;   // +LAO, -RAO
 	// G4double carm_secondary = 20 * deg; // +CAU, -CRA
@@ -75,9 +76,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event *anEvent)
 G4ThreeVector PrimaryGeneratorAction::SampleRectangularBeamDirection()
 {
 	G4ThreeVector upVec = G4ThreeVector(0, 0, 0) - G4ThreeVector(0, 0, -focalLength);
-	G4double a = fabs(upVec.z()) * tan(angle2);
-	G4double b = fabs(upVec.z()) * tan(angle1);
-	G4double x = 2 * a * G4UniformRand() - a;
+	G4double a = fabs(upVec.z()) * tan(angle1);
+	G4double b = fabs(upVec.z()) * tan(angle2);
+	G4double x = 2 * a * cdf_profile.lower_bound(G4UniformRand())->second - a;
 	G4double y = 2 * b * G4UniformRand() - b;
 	G4double z = upVec.z();
 
@@ -105,19 +106,26 @@ void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 	{
 		stringstream ss(dump);
 		ss >> dump;
-		if (dump == "Energy[keV]")
+		if (dump == "Brem[uGy/mAs@1m]")
+		{
+			G4double brem, chara;
+			ifs>>brem>>chara;
+			factor = (brem + chara)*1e-6;
+		}
+		else if (dump == "Energy[keV]")
 		{
 			while (getline(ifs, dump))
 			{
 				G4double energy, intensity;
 				stringstream ss2(dump);
 				ss2 >> energy >> intensity;
-				sum += energy * intensity;
-				pdf.push_back(make_pair(energy * intensity, energy * keV));
+				sum += intensity;
+				pdf.push_back(make_pair(intensity, energy * keV));
 			}
 		}
 	}
 	ifs.close();
+	factor = sum/factor;
 
 	sort(pdf.begin(), pdf.end(), greater<>());
 	transform(pdf.begin(), pdf.end(), pdf.begin(),
@@ -129,6 +137,36 @@ void PrimaryGeneratorAction::SetSourceEnergy(G4int peakE)
 	{
 		sumProb += itr.first;
 		cdf[sumProb] = itr.second;
+	}
+}
+
+void PrimaryGeneratorAction::SetProfile(G4String name)
+{
+	//simple scaling
+	std::ifstream ifs(name);
+	if(!ifs.is_open())
+	{
+		G4cerr<<"There is no "<<name<<G4endl;
+		return;
+	}
+	G4int num;
+	ifs>>num;
+	vector<double> pdf;
+	G4double p, sum(0);
+	for(G4int i=0; i<num;i++)
+	{
+		ifs>>p;
+		pdf.push_back(p);
+		sum += p;
+	}
+	ifs.close();
+	
+	cdf_profile.clear();
+	G4double prev(0);
+	for(G4int i=0;i<pdf.size();i++)
+	{
+		prev+=pdf[i] / sum;
+		cdf_profile[prev] = ((G4double)i+0.5) / num;
 	}
 }
 
@@ -169,4 +207,10 @@ void PrimaryGeneratorAction::FlatDetectorInitialization(DetectorZoomField FD, G4
 		angle2 = angle1;
 		break;
 	}
+}
+
+void PrimaryGeneratorAction::FlatDetectorInitialization(G4double xLength, G4double yLength, G4double SID)
+{
+	angle1 = atan(xLength * 0.5 / SID);
+	angle2 = atan(yLength * 0.5 / SID);
 }

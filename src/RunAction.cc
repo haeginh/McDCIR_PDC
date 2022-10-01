@@ -59,7 +59,7 @@ G4Run* RunAction::GenerateRun()
     static_cast<ParallelMesh*>(G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0))->GetIJK(ni,nj,nk);
     // generate run
     // fRun = new Run(ni*nj*nk);
-    fRun = new Run(ni*nj);
+    fRun = new Run(ni*nj*nk);
     return fRun;
 }
 
@@ -69,6 +69,8 @@ void RunAction::BeginOfRunAction(const G4Run* run)
   nps=run->GetNumberOfEventToBeProcessed();
   // nps = 100000000;
   G4RunManager::GetRunManager()->SetPrintProgress(int(nps*0.1));
+//   auto primary = (PrimaryGeneratorAction*) G4RunManager::GetRunManager()->GetUserPrimaryGeneratorAction();
+//   if(primary) fRun->SetFactor(primary->GetFactor());
 }
 
 void RunAction::EndOfRunAction(const G4Run* )
@@ -81,14 +83,15 @@ void RunAction::EndOfRunAction(const G4Run* )
     // std::ofstream hist(to_string(fRun->GetRunID())+".hist");
     // for(size_t i=0;i<doseMapL->size();i++) hist <<i<<" "<<(*doseMapL)[i]<<endl;
     // hist.close();
-    return;
-
+    // return;
+    // G4double factor = fRun->GetFactor();
     std::vector<G4float> resultMap(doseMapS->size());
+    // cout<<factor<<endl;
     std::ofstream ofs(std::to_string(fRun->GetRunID())+"AP.map", std::ios::binary);
     std::transform(doseMapS->begin(), doseMapS->end(), resultMap.begin(), [&](G4float d)->G4float{return d/(G4float)nps/gray;});
     ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4float));
-    // std::transform(doseMapE->begin(), doseMapE->end(), resultMap.begin(), [&](G4float d)->G4float{return d/(G4float)nps/gray;});
-    // ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4float));
+    std::transform(doseMapE->begin(), doseMapE->end(), resultMap.begin(), [&](G4float d)->G4float{return d/(G4float)nps/gray;});
+    ofs.write((char*) (&resultMap[0]), ni*nj*nk*sizeof(G4float));
     ofs.close();
 
     // std::ofstream ofsV("avg_dir.txt");

@@ -30,6 +30,7 @@
 #include "G4UIdirectory.hh"
 #include "G4UIcmdWithAString.hh"
 #include "G4UIcmdWith3Vector.hh"
+#include "G4UIcmdWith3VectorAndUnit.hh"
 #include "G4UIcmdWithAnInteger.hh"
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "PrimaryMessenger.hh"
@@ -41,6 +42,8 @@ PrimaryMessenger::PrimaryMessenger(PrimaryGeneratorAction* _primary)
 	
 	fFDCmd = new G4UIcmdWithAString("/beam/FD", this);
 	fFDCmd->SetCandidates("FD48 FD42 FD37 FD31 FD27 FD23 FD19 FD16");
+
+	fFDCmd2 = new G4UIcmdWith3VectorAndUnit("/beam/FDandSID", this);
 	
 	fBeamCmd = new G4UIcmdWith3Vector("/beam/c-arm", this);
 	fBeamCmd->SetParameterName("lao[deg]", "caud[deg]", "sid[cm]", true, true);
@@ -75,6 +78,10 @@ void PrimaryMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 		else if(newValue=="FD16")	fd = DetectorZoomField::FD16;
 
 		fPrimary->FlatDetectorInitialization(fd, sid);
+	}
+	else if(command == fFDCmd2){
+		G4ThreeVector val = fFDCmd2->GetNew3VectorValue(newValue);
+		fPrimary->FlatDetectorInitialization(val.getX(), val.getY(), val.getZ());
 	}
 	else if(command == fBeamCmd){
 		G4ThreeVector input = fBeamCmd->GetNew3VectorValue(newValue);

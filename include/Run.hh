@@ -46,6 +46,8 @@ public:
     const std::vector<G4float>* GetDoseMapE() const {return &doseMapE;}
     // const std::vector<G4float>* GetDoseMapL() const {return &doseMapL;}
     //    G4double GetDap(){return dap;}
+    void SetFactor(G4double _factor){factor = _factor;}
+    G4double GetFactor(){return factor;}
 private:
     G4int   fCollID_skin, fCollID_vector, fCollID_lens, fCollID_length;//, fCollID_dap;
     std::vector<G4float>  doseMapS;
@@ -53,6 +55,7 @@ private:
     std::vector<G4float>  doseMapE;
     // std::vector<G4float>  doseMapL;
 //    G4double dap;
+    G4double factor;
 };
 
 #endif

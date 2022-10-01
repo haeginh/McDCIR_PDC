@@ -23,49 +23,50 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
+// TETParameterisation.cc
+// \file   MRCP_GEANT4/External/src/TETParameterisation.cc
+// \author Haegin Han
 //
-/// \file MeshSD.hh
-/// \brief Definition of the MeshSD class
 
-#ifndef MeshSD_h
-#define MeshSD_h 1
+#include "TETParameterisation.hh"
+#include "DetectorConstruction.hh"
+#include "G4LogicalVolume.hh"
+#include "G4VisExecutive.hh"
+#include "G4RunManager.hh"
 
-#include "G4VSensitiveDetector.hh"
-
-#include "G4THitsMap.hh"
-
-#include <vector>
-
-class G4Step;
-class G4HCofThisEvent;
-
-class MeshSD : public G4VSensitiveDetector
+TETParameterisation::TETParameterisation(DetectorConstruction* _det)
+: G4VPVParameterisation(), det(_det)
 {
-  public:
-    MeshSD(const G4String& name, G4int i, G4int j, G4int k, G4double cellVol);
-    virtual ~MeshSD();
+}
 
-    virtual void   Initialize(G4HCofThisEvent* hitCollection);
-    virtual G4bool ProcessHits(G4Step* step, G4TouchableHistory* history);
-    virtual void   EndOfEvent(G4HCofThisEvent* hitCollection);
+TETParameterisation::~TETParameterisation()
+{}
 
-    void SetDoseCoefficients(G4String fileN);
+G4VSolid* TETParameterisation::ComputeSolid(
+    		       const G4int copyNo, G4VPhysicalVolume* )
+{
+	// return G4Tet*
+    return det->GetTet(copyNo);
+}
 
-  private:
-    void CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDose);
+void TETParameterisation::ComputeTransformation(
+                   const G4int,G4VPhysicalVolume*) const
+{}
 
-  private:
-    G4THitsMap<G4float>* fHitsMapS;  //skin dose
-    // G4THitsMap<G4ThreeVector>* fHitsMapV;  //vector
-    G4THitsMap<G4float>* fHitsMapE; //lens dose
-    // G4THitsMap<G4float>* fHitsMapL; //tmp
-    G4int    ni, nj, nk;
-    std::vector<G4float> energyVec;
-    // std::vector<G4float> skinDvec, lensDvec;
-    // std::vector<G4float> skinSlope, lensSlope;
-    std::map<G4float, std::pair<G4float, G4float>> dcMap;
-    G4ParticleDefinition* gamma;
-};
+G4Material* TETParameterisation::ComputeMaterial(const G4int copyNo,
+                                                 G4VPhysicalVolume* phy,
+                                                 const G4VTouchable* )
+{
+   // set the colour for each organ if visualization is required
+	// if(det->IsForVis())
+	// {
+		// phy->GetLogicalVolume()->SetVisAttributes(phantom->GetVisAtt(copyNo));
+		// phy->GetLogicalVolume()->SetMaterial(det->GetMateiral(copyNo));
+	// }
+	
+	// // return the material data for each material index
+	// return det->GetTissueMaterial();
+	return det->GetMaterial(copyNo);
+}
 
-#endif
 

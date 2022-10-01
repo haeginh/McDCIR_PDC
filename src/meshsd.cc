@@ -43,6 +43,7 @@ MeshSD::MeshSD(const G4String &name, G4int _i, G4int _j, G4int _k, G4double cell
   // collectionName.insert("vector");
   collectionName.insert("doseE"); //lens dose
   // collectionName.insert("doseL");
+  SetDoseCoefficients("../DC.txt");
 
   // ISO coeff.
   // energyVec = {0,0.01,0.015,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.1,0.15};
@@ -50,24 +51,24 @@ MeshSD::MeshSD(const G4String &name, G4int _i, G4int _j, G4int _k, G4double cell
   // lensDvec  = {0,2.96E-01,5.55E-01,5.03E-01,3.35E-01,2.55E-01,2.28E-01,2.28E-01,2.44E-01,2.68E-01,3.30E-01,5.26E-01};
 
   // AP slab
-  energyVec = {0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.15};
-  skinDvec = {0, 0, 3.00432, 20.9491, 26.2417, 22.597, 17.9184, 14.0274, 11.019, 8.75135, 7.1847, 1.83933, 0.878339, 0.553596, 0.435712, 0.391766, 0.387769, 0.416709, 0.44256, 0.481178, 0.731385};
-  lensDvec = {0, 0.276, 0.689, 1.38, 1.98, 1.52, 0.833, 0.563, 0.460, 0.437, 0.446, 0.468, 0.555, 0.842};
+  // energyVec = {0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.15};
+  // skinDvec = {0, 0, 3.00432, 20.9491, 26.2417, 22.597, 17.9184, 14.0274, 11.019, 8.75135, 7.1847, 1.83933, 0.878339, 0.553596, 0.435712, 0.391766, 0.387769, 0.416709, 0.44256, 0.481178, 0.731385};
+  // lensDvec = {0, 0.276, 0.689, 1.38, 1.98, 1.52, 0.833, 0.563, 0.460, 0.437, 0.446, 0.468, 0.555, 0.842};
 
-  skinSlope.resize(energyVec.size(), 0);
-  lensSlope.resize(energyVec.size(), 0);
+  // skinSlope.resize(energyVec.size(), 0);
+  // lensSlope.resize(energyVec.size(), 0);
 
-  G4double coeff = 1E-12 * (joule / kg) * cm2 / cellVol;
-  for (size_t i = 0; i < energyVec.size(); i++)
-  {
-    energyVec[i] *= MeV;
-    skinDvec[i] *= coeff;
-    lensDvec[i] *= coeff;
-    if (i == 0)
-      continue;
-    skinSlope[i] = (skinDvec[i] - skinDvec[i - 1]) / (energyVec[i] - energyVec[i - 1]);
-    lensSlope[i] = (lensDvec[i] - lensDvec[i - 1]) / (energyVec[i] - energyVec[i - 1]);
-  }
+  // G4double coeff = 1E-12 * (joule / kg) * cm2 / cellVol;
+  // for (size_t i = 0; i < energyVec.size(); i++)
+  // {
+  //   energyVec[i] *= MeV;
+  //   skinDvec[i] *= coeff;
+  //   lensDvec[i] *= coeff;
+  //   if (i == 0)
+  //     continue;
+  //   skinSlope[i] = (skinDvec[i] - skinDvec[i - 1]) / (energyVec[i] - energyVec[i - 1]);
+  //   lensSlope[i] = (lensDvec[i] - lensDvec[i - 1]) / (energyVec[i] - energyVec[i - 1]);
+  // }
   gamma = G4ParticleTable::GetParticleTable()->FindParticle("gamma");
 }
 
@@ -141,18 +142,12 @@ void MeshSD::EndOfEvent(G4HCofThisEvent *)
 #include <algorithm>
 void MeshSD::CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDose)
 {
-  size_t i = std::upper_bound(energyVec.begin(), energyVec.end(), energy) - energyVec.begin();
-  if(i==energyVec.size())
-  {
-    G4Exception("MeshSD::CalculateDoses", "", JustWarning,
-              G4String(std::to_string(energy / MeV) + " MeV! Larger than " + std::to_string(energyVec.back() / MeV) + " MeV"));
-    skinDose = skinDvec.back();
-    lensDose = lensDvec.back();
-    return;
-  }
-    
-  skinDose = skinDvec[i - 1] + (energy - energyVec[i - 1]) * skinSlope[i];
-  lensDose = lensDvec[i - 1] + (energy - energyVec[i - 1]) * lensSlope[i];
+  auto iter = dcMap.upper_bound(energy);
+
+  G4float factor = (iter->first - energy)/(iter->first - std::prev(iter)->first);
+  skinDose = std::prev(iter)->second.first + (iter->second.first - std::prev(iter)->second.first)*factor;
+  lensDose = std::prev(iter)->second.second + (iter->second.second - std::prev(iter)->second.second)*factor;
+  G4cout<<energy<<": "<<std::prev(iter)->first<<" / "<<iter->first<<" -> "<<skinDose<<G4endl;
   return;
 
   // for (size_t i = 1; i < energyVec.size(); i++)
@@ -172,4 +167,21 @@ void MeshSD::CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDos
   //             G4String(std::to_string(energy / MeV) + " MeV! Larger than " + std::to_string(energyVec.back() / MeV) + " MeV"));
   // skinDose = skinDvec.back();
   // lensDose = lensDvec.back();
+}
+
+void MeshSD::SetDoseCoefficients(G4String fileN)
+{
+  std::ifstream ifs(fileN);
+  G4float energy, skinDC, lensDC;
+  G4float dcUnit = 1E-12 * gray * cm2 ; //pGycm2
+  dcMap.clear();
+  while(ifs>>energy>>skinDC>>lensDC)
+  {
+    if(dcMap.find(energy)!=dcMap.end())
+    {
+      G4cerr<<"check dose coefficients: "<<energy<<" MeV duplicated"<<G4endl;
+      continue;
+    }
+    dcMap[energy*MeV] = std::make_pair(skinDC*dcUnit, lensDC*dcUnit);
+  }
 }

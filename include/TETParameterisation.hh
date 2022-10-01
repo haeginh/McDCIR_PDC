@@ -23,49 +23,45 @@
 // * acceptance of all terms of the Geant4 Software license.          *
 // ********************************************************************
 //
+// TETParameterisation.hh
+// \file   MRCP_GEANT4/External/include/TETParameterisation.hh
+// \author Haegin Han
 //
-/// \file MeshSD.hh
-/// \brief Definition of the MeshSD class
 
-#ifndef MeshSD_h
-#define MeshSD_h 1
+#ifndef TETParameterisation_h
+#define TETParameterisation_h 1
 
-#include "G4VSensitiveDetector.hh"
+#include "DetectorConstruction.hh"
+#include "globals.hh"
+#include "G4VPVParameterisation.hh"
+#include "G4VSolid.hh"
+#include "G4Material.hh"
+#include "G4VisAttributes.hh"
 
-#include "G4THitsMap.hh"
+#include <map>
 
-#include <vector>
+class G4VPhysicalVolume;
 
-class G4Step;
-class G4HCofThisEvent;
-
-class MeshSD : public G4VSensitiveDetector
+class TETParameterisation : public G4VPVParameterisation
 {
   public:
-    MeshSD(const G4String& name, G4int i, G4int j, G4int k, G4double cellVol);
-    virtual ~MeshSD();
+    TETParameterisation(DetectorConstruction* _det);
+    virtual ~TETParameterisation();
+    
+    virtual G4VSolid* ComputeSolid(
+    		       const G4int copyNo, G4VPhysicalVolume* );
+    
+    virtual void ComputeTransformation(
+                   const G4int,G4VPhysicalVolume*) const;
 
-    virtual void   Initialize(G4HCofThisEvent* hitCollection);
-    virtual G4bool ProcessHits(G4Step* step, G4TouchableHistory* history);
-    virtual void   EndOfEvent(G4HCofThisEvent* hitCollection);
-
-    void SetDoseCoefficients(G4String fileN);
+    virtual G4Material* ComputeMaterial(const G4int copyNo,
+                                        G4VPhysicalVolume* phy,
+                                        const G4VTouchable*);
 
   private:
-    void CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDose);
-
-  private:
-    G4THitsMap<G4float>* fHitsMapS;  //skin dose
-    // G4THitsMap<G4ThreeVector>* fHitsMapV;  //vector
-    G4THitsMap<G4float>* fHitsMapE; //lens dose
-    // G4THitsMap<G4float>* fHitsMapL; //tmp
-    G4int    ni, nj, nk;
-    std::vector<G4float> energyVec;
-    // std::vector<G4float> skinDvec, lensDvec;
-    // std::vector<G4float> skinSlope, lensSlope;
-    std::map<G4float, std::pair<G4float, G4float>> dcMap;
-    G4ParticleDefinition* gamma;
+    DetectorConstruction*                   det;
+    // G4Material* tissue;
+    // G4bool                             isforVis;
 };
 
 #endif
-

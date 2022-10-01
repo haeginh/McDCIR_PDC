@@ -38,12 +38,14 @@
 #include "G4NistManager.hh"
 
 #include "G4Box.hh"
+#include "G4Tet.hh"
+
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
 #include "DetectorMessenger.hh"
 #include "G4GeometryManager.hh"
-// #include "ParallelGlass.hh"
+#include <Eigen/Geometry>
 
 class DetectorConstruction : public G4VUserDetectorConstruction
 {
@@ -58,32 +60,38 @@ public:
 
     // Operating Table
     void SetTablePose(G4ThreeVector _table_trans, G4double table_pivot_angle) 
-	//_table_trans is the translation from when rotation center is at the center of the table
 	{  				
-		// G4GeometryManager::GetInstance()->OpenGeometry(pv_frame);
-		table_trans = _table_trans;
-		G4ThreeVector frameOrigin = frame_default + table_trans; //before rotation
-		if(table_pivot_angle==0) 
-		{
-			pv_frame->SetTranslation(frameOrigin);
-			return;
-		}
+		// G4GeometryManager::GetInstance()->OpenGeometry(worldPhysical);
+		
+		auto table_rot = pv_table->GetRotation();
+		table_rot->set(G4RotationMatrix::IDENTITY.axisAngle());
+		table_rot->rotateZ(-table_pivot_angle); //inverse
 
-		frame_rotation_matrix->set(G4RotationMatrix::IDENTITY.axisAngle());
-		frame_rotation_matrix->rotateZ(-table_pivot_angle);
-		pv_frame->SetTranslation(frameOrigin + frame_rotation_matrix->inverse() * (table_rotation_center - frameOrigin));
-		// G4GeometryManager::GetInstance()->CloseGeometry(false, false, pv_frame);
+		Eigen::Rotation2Dd rot(table_pivot_angle);
+		Eigen::Translation2d trans0(table_rotation_center.x(), table_rotation_center.y());
+		auto T = trans0*rot*trans0.inverse()*Eigen::Translation2d(_table_trans.x(), _table_trans.y());
+		Eigen::Vector2d transT = (T*Eigen::Translation2d(table_center0.x(), table_center0.y())).translation();
+		Eigen::Vector2d transC = (T*Eigen::Translation2d(curtain_center0.x(), curtain_center0.y())).translation();
+		Eigen::Vector2d transP = (T*Eigen::Translation2d(phantom_center0.x(), phantom_center0.y())).translation();
+		G4cout<<table_center0<<" "<<_table_trans<<" "<<transT<<G4endl;
+		pv_table->SetTranslation(G4ThreeVector(transT(0), transT(1), table_center0.z()+_table_trans.z()));
+		pv_curtain->SetTranslation(G4ThreeVector(transC(0), transC(1), curtain_center0.z()+_table_trans.z()));
+		pv_phantom->SetTranslation(G4ThreeVector(transP(0), transP(1), phantom_center0.z()+_table_trans.z()));
 	}
 
 	void UseCurtain(G4bool use = true)
 	{
-		if(use) lv_curtain->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"));
-		else lv_curtain->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"));
+		if(use) pv_curtain->GetLogicalVolume()->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_Pb"));
+		else pv_curtain->GetLogicalVolume()->SetMaterial(G4NistManager::Instance()->FindOrBuildMaterial("G4_AIR"));
 	}
 
 	void SetPatientName(G4String _patient){patient = _patient;}
 
 private:
+	void SetTableSize(G4ThreeVector size){ // full size
+		table_size = size;
+	}
+
     void SetupWorldGeometry();
 
 	void ConstructOperatingTable();
@@ -94,13 +102,14 @@ private:
 	G4LogicalVolume*   worldLogical;
 	G4VPhysicalVolume* worldPhysical;
 
+	G4double isoZ;
 	// Operating Table
-	G4VPhysicalVolume* pv_frame;
-	G4LogicalVolume* lv_curtain;
 	G4ThreeVector table_ref_pos; // right top corner
-	G4ThreeVector table_rotation_center;//, table_default_trans; //program input (relative coordinate to ChArUco)
-	G4RotationMatrix* frame_rotation_matrix; //inverse
-	G4ThreeVector frame_default, table_trans;
+	G4ThreeVector table_rotation_center;
+	G4ThreeVector table_size, curtain_size;
+	G4ThreeVector table_center0, phantom_center0, curtain_center0;
+	G4VPhysicalVolume *pv_table, *pv_phantom, *pv_curtain;
+
 	G4String patient;
 
 	//frame
@@ -108,6 +117,16 @@ private:
 
 	//messenger
 	DetectorMessenger* messenger;
+
+	//phantom
+	std::vector<G4Tet*> tetVec;
+	Eigen::ArrayXi idArray;
+	std::map<G4int, G4Material*> matMap;
+public:
+	G4Tet* GetTet(G4int id){return tetVec[id];}
+	// G4int GetOrganId(G4int id){return idArray(id);}
+	G4Material* GetMaterial(G4int id){return matMap[idArray(id)];}
+	// G4Material* GetTissueMaterial(){return matMap[12200];}
 };
 
 

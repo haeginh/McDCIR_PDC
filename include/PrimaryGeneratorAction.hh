@@ -65,8 +65,10 @@ public:
 
   G4ParticleGun *GetParticleGun() const { return fPrimary; }
   void SetSourceEnergy(G4int peakE); //peakE in keV
+  void SetProfile(G4String name);
 
   void FlatDetectorInitialization(DetectorZoomField FD, G4double SID);
+  void FlatDetectorInitialization(G4double xLength, G4double yLength, G4double SID);
   void SetCarmAngles(G4double primary, G4double secondary)
   // carm_primary = 20 * deg;   // +LAO, -RAO
   // carm_secondary = 20 * deg; // +CAU, -CRA
@@ -92,6 +94,7 @@ public:
   }
 
   G4ThreeVector SampleRectangularBeamDirection();
+  G4double GetFactor() {return factor;}
 
 private:
   G4ParticleGun *fPrimary;
@@ -100,11 +103,14 @@ private:
   
   // Energy
   map<G4double, G4double> cdf;
+  map<G4double, G4double> cdf_profile;
 
   //messenger
   PrimaryMessenger *messenger;
 
   G4double focalLength;
+
+  G4double factor;//result*DAP[Gycm2/s] = dose/s
 };
 
 #endif

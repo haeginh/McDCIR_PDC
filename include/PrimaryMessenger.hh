@@ -38,6 +38,7 @@
 class G4UIdirectory;
 class G4UIcmdWithAString;
 class G4UIcmdWith3Vector;
+class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWithAnInteger;
 class G4UIcmdWithADoubleAndUnit;
 
@@ -53,6 +54,7 @@ private:
 	PrimaryGeneratorAction*    fPrimary;
 	G4UIdirectory*             fBeamDir;
 	G4UIcmdWithAString*        fFDCmd;
+	G4UIcmdWith3VectorAndUnit* fFDCmd2;
 	G4UIcmdWith3Vector*        fBeamCmd;
 	G4UIcmdWithAnInteger*      fPeakEnergyCmd;
 	G4UIcmdWithADoubleAndUnit* fLiftFocalSpotCmd;
