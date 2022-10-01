@@ -62,6 +62,9 @@ class TETParameterisation : public G4VPVParameterisation
     DetectorConstruction*                   det;
     // G4Material* tissue;
     // G4bool                             isforVis;
+    G4Material* bone;
+    G4Material* tissue;
+    G4Material* lung;
 };
 
 #endif

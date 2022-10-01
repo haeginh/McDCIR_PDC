@@ -124,7 +124,6 @@ private:
 	std::map<G4int, G4Material*> matMap;
 public:
 	G4Tet* GetTet(G4int id){return tetVec[id];}
-	// G4int GetOrganId(G4int id){return idArray(id);}
 	G4Material* GetMaterial(G4int id){return matMap[idArray(id)];}
 	// G4Material* GetTissueMaterial(){return matMap[12200];}
 };

@@ -33,10 +33,12 @@
 #include "G4LogicalVolume.hh"
 #include "G4VisExecutive.hh"
 #include "G4RunManager.hh"
+#include "G4NistManager.hh"
 
 TETParameterisation::TETParameterisation(DetectorConstruction* _det)
 : G4VPVParameterisation(), det(_det)
 {
+
 }
 
 TETParameterisation::~TETParameterisation()

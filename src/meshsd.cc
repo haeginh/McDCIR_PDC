@@ -147,7 +147,6 @@ void MeshSD::CalculateDoses(G4double energy, G4float &skinDose, G4float &lensDos
   G4float factor = (iter->first - energy)/(iter->first - std::prev(iter)->first);
   skinDose = std::prev(iter)->second.first + (iter->second.first - std::prev(iter)->second.first)*factor;
   lensDose = std::prev(iter)->second.second + (iter->second.second - std::prev(iter)->second.second)*factor;
-  G4cout<<energy<<": "<<std::prev(iter)->first<<" / "<<iter->first<<" -> "<<skinDose<<G4endl;
   return;
 
   // for (size_t i = 1; i < energyVec.size(); i++)

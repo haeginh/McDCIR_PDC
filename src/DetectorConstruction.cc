@@ -213,6 +213,7 @@ G4LogicalVolume* DetectorConstruction::ConstructPatient(G4String _patient)
 		}
 	}
 	ifsMat.close();
+	matMap[12200] = G4NistManager::Instance()->FindOrBuildMaterial("G4_TISSUE_SOFT_ICRP");
 	G4cout<<"done"<<G4endl;
 
 	//construc tets
