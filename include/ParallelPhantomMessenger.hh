@@ -49,17 +49,15 @@ public:
 	virtual ~ParallelPhantomMessenger();
 
 	virtual void SetNewValue(G4UIcommand*, G4String);
-
-	void ReadPostureData(G4String fileName);
+	// void ReadPostureData(G4String fileName);
 
 private:
 	ParallelPhantom* fPhantom;
 	G4UIdirectory*   fPhantomDir;
-	G4UIcmdWithAnInteger* fDeformCmd; 
-	G4UIcmdWithAString* fDataReadCmd; 
-
-	vector<RotationList> vQ_vec;
-	VectorList roots;
+	G4UIcmdWithAString* fInitCmd; 
+	G4UIcmdWithAString* fDeformCmd; 
+	G4UIcmdWithAnInteger* fSetFrameCmd; 
+	
 };
 
 #endif

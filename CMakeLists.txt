@@ -32,9 +32,16 @@ endif()
 # Setup include directory for this project
 #
 # libigl
-option(LIBIGL_WITH_TETGEN            "Use TetGen"         ON)
-find_package(LIBIGL REQUIRED QUIET)
-set(LIBIGL_DIR ${LIBIGL_INCLUDE_DIR}/..)
+list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+#include(igl)
+
+#option(LIBIGL_WITH_TETGEN            "Use TetGen"         ON)
+option(LIBIGL_USE_STATIC_LIBRARY     "Use libIGL as static librarie" ON)
+find_package(LIBIGL REQUIRED PATH ${LIBIGL_DIR}/lib/cmake/igl)
+#include(igl)
+igl_include(core)
+igl_include(copyleft tetgen)
+#set(LIBIGL_DIR ${LIBIGL_INCLUDE_DIR}/..)
 include(${Geant4_USE_FILE})
 include_directories(${PROJECT_SOURCE_DIR}/include
 		    #${MARIADB_INCLUDE_DIR}
@@ -83,5 +90,5 @@ target_link_libraries( ${PROJECT_NAME}
 	#${LIBSSH_LIB} 
 	${Geant4_LIBRARIES}
 	igl::core
-	igl::tetgen
+	igl_copyleft::tetgen
 	)

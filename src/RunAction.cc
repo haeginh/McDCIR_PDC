@@ -34,11 +34,13 @@
 #include "G4Neutron.hh"
 #include <iostream>
 #include "RunAction.hh"
+#include "ParallelPhantom.hh"
+#include "DetectorConstruction.hh"
 
-RunAction::RunAction(TETModelImport* _tetData, G4String _output, G4Timer* _init)
-:tetData(_tetData), fRun(0), numOfEvent(0), runID(0), outputFile(_output), initTimer(_init), runTimer(0)
+RunAction::RunAction(G4String _output, G4Timer* _init)
+: fRun(0), numOfEvent(0), runID(0), outputFile(_output), initTimer(_init), runTimer(0)
 {
-
+	DoseRead("dose.txt");
 }
 
 RunAction::~RunAction()
@@ -47,7 +49,7 @@ RunAction::~RunAction()
 G4Run* RunAction::GenerateRun()
 {
 	// generate run
-	fRun = new Run();
+	fRun = new Run(this);
 	return fRun;
 }
 
@@ -57,6 +59,20 @@ void RunAction::BeginOfRunAction(const G4Run* aRun)
 	// print the progress at the interval of 10%
 	numOfEvent=aRun->GetNumberOfEventToBeProcessed();
 	G4RunManager::GetRunManager()->SetPrintProgress(G4int(numOfEvent*0.1));
+	
+	auto parallel = static_cast<ParallelPhantom*>(
+		G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0));
+	mass = Eigen::MatrixXd::Zero(parallel->GetNumberOfPhantoms(), 32);
+	for(G4int i=0;i<mass.rows();i++)
+	{
+		auto massMap = parallel->GetMassMap(i);
+		for(auto iter:massMap)
+		{
+			for(G4int d:doseMap[iter.first])
+				mass(i, d) += iter.second;
+		}
+	}
+	fRun->SetMassInv(mass);
 }
 
 void RunAction::EndOfRunAction(const G4Run* aRun)
@@ -83,7 +99,9 @@ void RunAction::PrintResult(std::ostream &out)
 	// Print run result
 	//
 	using namespace std;
-	EDEPMAP edepMap = *fRun->GetEdepMap();
+
+	auto parallel = static_cast<ParallelPhantom*>(
+		G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0));
 
 	// out << G4endl
 	//     << "=====================================================================" << G4endl
@@ -95,21 +113,37 @@ void RunAction::PrintResult(std::ostream &out)
 	// 	<< setw(19) << "Relative Error" << G4endl;
 
 	out.precision(3);
-	auto massMap = tetData->GetMassMap();
-	for(auto itr : massMap){
-		G4double meanDose    = edepMap[itr.first].first  / itr.second / numOfEvent;
-		G4double squareDoese = edepMap[itr.first].second / (itr.second*itr.second);
-		G4double variance    = ((squareDoese/numOfEvent) - (meanDose*meanDose))/numOfEvent;
-		G4double relativeE   = sqrt(variance)/meanDose;
+	for(G4int i=0;i<32;i++) out<<organNameMap[i]<<"\t";
+	out<<"eff"<<endl;
+	Eigen::MatrixXd edep = fRun->GetEdepMat()/(double)numOfEvent;
+	Eigen::MatrixXd err = ((fRun->GetEdep2Mat()/(double)numOfEvent) - edep.cwiseAbs2()).cwiseSqrt().array() / edep.array();
+	out<<edep/gray<<endl<<endl<<err<<endl<<endl<<mass;
+}
 
-		// out << setw(8)  << itr.first << "| "
-		// 	<< setw(19) << fixed      << itr.second/g;
-		// out	<< setw(19) << scientific << meanDose/(joule/kg);
-		// out	<< setw(19) << fixed      << relativeE << G4endl;
-		out << setw(8)  << itr.first 
-			<< setw(19) << fixed      << itr.second/g;
-		out	<< setw(19) << scientific << meanDose/(joule/kg)*1e12; //pGy
-		out	<< setw(19) << fixed      << relativeE << G4endl;
+void RunAction::DoseRead(G4String file){
+	std::ifstream ifs(file);
+	if(!ifs.is_open())
+		G4Exception("PhantomData::DataRead","",FatalErrorInArgument,
+		G4String("      There is no " + file ).c_str());
+	
+	G4String line;
+	effDoseVec = Eigen::VectorXd::Zero(32);
+	while(getline(ifs, line))
+	{
+		if(line.empty()) continue;
+		std::stringstream ss(line);
+		G4int id, id1(-1);
+		G4double eff, mass(0);
+		G4String name;
+		ss>>id>>name>>eff;
+		if(name.empty()) continue;
+		organNameMap[id] = name;
+		effDoseVec[id] = eff;
+		while(ss>>id1)
+		{
+			if(id1<0) continue;
+			doseMap[id1].push_back(id);
+			id1=-1;
+		}
 	}
-	// out << "=====================================================================" << G4endl << G4endl;
 }

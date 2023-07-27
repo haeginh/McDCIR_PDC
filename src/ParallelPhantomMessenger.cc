@@ -43,53 +43,68 @@ ParallelPhantomMessenger::ParallelPhantomMessenger(ParallelPhantom* _phantom)
 :G4UImessenger(), fPhantom(_phantom)
 {
 	fPhantomDir = new G4UIdirectory("/phantom/");
-	fDeformCmd = new G4UIcmdWithAnInteger("/phantom/frame", this);
-	fDataReadCmd = new G4UIcmdWithAString("/phantom/data", this);
-
+	fInitCmd = new G4UIcmdWithAString("/phantom/init", this);
+	fDeformCmd = new G4UIcmdWithAString("/phantom/deform", this);
+	//(id) (x,y,z,w) (x,y,z,w) .... (x,y,z)_root
+	fSetFrameCmd = new G4UIcmdWithAnInteger("/phantom/setFrame", this);
 }
 
 ParallelPhantomMessenger::~ParallelPhantomMessenger() {
 	delete fPhantomDir;
+	delete fInitCmd;
 	delete fDeformCmd; 
-	delete fDataReadCmd;
+	delete fSetFrameCmd;
 }
 
 void ParallelPhantomMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
 {
-	if(command == fDeformCmd){
-		G4int i = fDeformCmd->GetNewIntValue(newValue);
-		fPhantom->Deform(vQ_vec[i], roots[i]);
+	if(command == fInitCmd){
+		fPhantom->InitializePhantoms(newValue);
 	}
-	else if(command == fDataReadCmd){
-		ReadPostureData(newValue);
-	}
-}
-
-void ParallelPhantomMessenger::ReadPostureData(G4String fileName)
-{
-	ifstream ifs(fileName);
-	if(!ifs.is_open())
-	{
-		cout<<"fileName is not open"<<endl;
-	}
-	vQ_vec.clear();
-	roots.clear();
-
-	G4String line;
-	while(getline(ifs, line))
-	{
-		if(line.empty()) continue;
-		stringstream ss(line);
-		G4double x, y, z, w;
-		ss>>x>>y>>z;
-		roots.push_back(Vector3d(x,y,z)*cm);
+	else if(command == fDeformCmd){
+		std::stringstream ss(newValue);
+		G4int id;
+		ss>>id;
+		G4double dat;
+		std::vector<G4double> datVec;
+		while(ss>>dat)
+			datVec.push_back(dat);
 		RotationList vQ;
-		for(int i=0;i<22;i++)
-		{
-			ss>>w>>x>>y>>z;
-			vQ.push_back(Quaterniond(w, x, y, z));
-		}
-		vQ_vec.push_back(vQ);
+		Vector3d root(datVec[datVec.size()-3], datVec[datVec.size()-2], datVec[datVec.size()-1]);
+		for(int i=0;i<datVec.size()-3;i+=4)
+			vQ.push_back(Quaterniond(datVec[i],datVec[i+1],datVec[i+2],datVec[i+3]));
+		fPhantom->Deform(id, vQ, root*cm);
 	}
-	ifs.close();
+	else if(command == fSetFrameCmd){
+		fPhantom->SetNewFrame(fSetFrameCmd->GetNewIntValue(newValue));
+	}
 }
+
+// void ParallelPhantomMessenger::ReadPostureData(G4String fileName)
+// {
+// 	ifstream ifs(fileName);
+// 	if(!ifs.is_open())
+// 	{
+// 		cout<<"fileName is not open"<<endl;
+// 	}
+// 	vQ_vec.clear();
+// 	roots.clear();
+
+// 	G4String line;
+// 	while(getline(ifs, line))
+// 	{
+// 		if(line.empty()) continue;
+// 		stringstream ss(line);
+// 		G4double x, y, z, w;
+// 		ss>>x>>y>>z;
+// 		roots.push_back(Vector3d(x,y,z)*cm);
+// 		RotationList vQ;
+// 		for(int i=0;i<22;i++)
+// 		{
+// 			ss>>w>>x>>y>>z;
+// 			vQ.push_back(Quaterniond(w, x, y, z));
+// 		}
+// 		vQ_vec.push_back(vQ);
+// 	}
+// 	ifs.close();
+// }

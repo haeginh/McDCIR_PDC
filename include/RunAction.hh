@@ -42,12 +42,12 @@
 
 #include "PrimaryGeneratorAction.hh"
 #include "Run.hh"
-#include "TETModelImport.hh"
+#include "PhantomData.hh"
 
 class RunAction : public G4UserRunAction
 {
 public:
-	RunAction(TETModelImport* tetData, G4String output, G4Timer* initTimer);
+	RunAction(G4String output, G4Timer* initTimer);
 	virtual ~RunAction();
 
 public:
@@ -56,15 +56,22 @@ public:
 	virtual void EndOfRunAction(const G4Run*);
 
 	void PrintResult(std::ostream &out);
-  
+	void DoseRead(G4String file);
+    std::map<G4int, std::vector<G4int>> GetDoseMap(){return doseMap;}
+	Eigen::VectorXd GetEffDoseVec(){return effDoseVec;}
+	
 private:
-	TETModelImport* tetData;
 	Run*            fRun;
 	G4int           numOfEvent;
 	G4int           runID;
 	G4String        outputFile;
 	G4Timer*        initTimer;
 	G4Timer*        runTimer;
+	Eigen::MatrixXd mass;
+
+	std::map<G4int, G4String>                      organNameMap;
+	std::map<G4int, std::vector<G4int>>            doseMap; //suborgan:dose
+	Eigen::VectorXd                                effDoseVec;
 };
 
 #endif

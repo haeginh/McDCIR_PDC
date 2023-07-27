@@ -3,7 +3,7 @@
 PhantomAnimator::PhantomAnimator() {}
 PhantomAnimator::~PhantomAnimator() {}
 
-PhantomAnimator::PhantomAnimator(string prefix)
+PhantomAnimator::PhantomAnimator(string prefix, string profile)
 {
     cout << "Read " + prefix + ".tgf" << endl;
     igl::readTGF(prefix + ".tgf", C, BE);
@@ -11,13 +11,11 @@ PhantomAnimator::PhantomAnimator(string prefix)
     igl::directed_edge_parents(BE, P);
 
     //distance to parent joint
-    for (int i = 0; i < BE.rows(); i++)
-        lengths[i] = (C.row(BE(i, 0)) - C.row(BE(i, 1))).norm();
+    // for (int i = 0; i < BE.rows(); i++)
+    //     lengths[i] = (C.row(BE(i, 0)) - C.row(BE(i, 1))).norm();
 
     ReadTetMesh(prefix);
-    V_calib = V;
-    C_calib = C;
-    U = V_calib;
+    U = V;
 
     if (!igl::readDMAT(prefix + ".W", W) || !igl::readDMAT(prefix + ".Wj", Wj))
         PreparePhantom(prefix);
@@ -39,7 +37,7 @@ PhantomAnimator::PhantomAnimator(string prefix)
         cleanWeights.push_back(vertexWeight);
     }
 
-    ReadProfileData("./phantoms/profile.txt");
+    if(profile != "original") ReadProfileData(profile);
 }
 
 void PhantomAnimator::ReadTetMesh(string prefix)
@@ -127,130 +125,135 @@ void PhantomAnimator::PreparePhantom(string prefix) //there should be prefix.ply
     igl::writeDMAT(prefix + ".Wj", Wj, false);
 }
 
-string PhantomAnimator::CalibrateTo(string name)
-{
-    int id = profileIDs[name];
-    map<int, double> calibLengths = jointLengths[id];
-    Vector3d eyeL_pos = eyeL_vec[id];
-    Vector3d eyeR_pos = eyeR_vec[id];
+// string PhantomAnimator::CalibrateTo(string name)
+// {
+//     int id = profileIDs[name];
+//     map<int, double> calibLengths = jointLengths[id];
+//     Vector3d eyeL_pos = eyeL_vec[id];
+//     Vector3d eyeR_pos = eyeR_vec[id];
 
-    MatrixXd jointTrans = MatrixXd::Zero(C.rows(), 3);
-    int headJ(24), eyeLJ(22), eyeRJ(23);
-    stringstream ss;
-    for (int i = 0; i < BE.rows(); i++)
-    {
-        if (calibLengths.find(i) == calibLengths.end())
-        {
-            // Bone Tip: Head, Hands, Feets
-            calibLengths[i] = lengths[i];
-            jointTrans.row(BE(i, 1)) = jointTrans.row(BE(P(i), 1));
-            cout << setw(3) << i << " = " << lengths[i] << endl;
-            continue;
-        }
-        // Bone Scaling
-        double ratio = calibLengths[i] / lengths[i]; // kinedct measuring / tgf based phantom measuring
-        cout << setw(3) << i << " = " << lengths[i] << " -> " << calibLengths[i] << " (" << ratio * 100 << " %)" << endl;
-        ss << i << " : " << ratio * 100 << " %" << endl;
+//     MatrixXd jointTrans = MatrixXd::Zero(C.rows(), 3);
+//     int headJ(24), eyeLJ(22), eyeRJ(23);
+//     stringstream ss;
+//     for (int i = 0; i < BE.rows(); i++)
+//     {
+//         if (calibLengths.find(i) == calibLengths.end())
+//         {
+//             // Bone Tip: Head, Hands, Feets
+//             calibLengths[i] = lengths[i];
+//             jointTrans.row(BE(i, 1)) = jointTrans.row(BE(P(i), 1));
+//             cout << setw(3) << i << " = " << lengths[i] << endl;
+//             continue;
+//         }
+//         // Bone Scaling
+//         double ratio = calibLengths[i] / lengths[i]; // kinedct measuring / tgf based phantom measuring
+//         cout << setw(3) << i << " = " << lengths[i] << " -> " << calibLengths[i] << " (" << ratio * 100 << " %)" << endl;
+//         ss << i << " : " << ratio * 100 << " %" << endl;
 
-        // adjust to bone length
-        jointTrans.row(BE(i, 1)) = (1 - ratio) * (C.row(BE(i, 0)) - C.row(BE(i, 1)));
-        if (P(i) < 0)
-            continue;
-        jointTrans.row(BE(i, 1)) += jointTrans.row(BE(P(i), 1));
-    }
+//         // adjust to bone length
+//         jointTrans.row(BE(i, 1)) = (1 - ratio) * (C.row(BE(i, 0)) - C.row(BE(i, 1)));
+//         if (P(i) < 0)
+//             continue;
+//         jointTrans.row(BE(i, 1)) += jointTrans.row(BE(P(i), 1));
+//     }
 
-    jointTrans.row(eyeLJ) = C.row(headJ) + jointTrans.row(headJ) + eyeL_pos.transpose() - C.row(eyeLJ);
-    jointTrans.row(eyeRJ) = C.row(headJ) + jointTrans.row(headJ) + eyeR_pos.transpose() - C.row(eyeRJ);
-    jointTrans.row(headJ) = MatrixXd::Zero(1, 3);
-    jointTrans(headJ, 1) = (jointTrans(eyeLJ, 1) + jointTrans(eyeRJ, 1)) * 0.5;
-    C_calib = C + jointTrans;
+//     jointTrans.row(eyeLJ) = C.row(headJ) + jointTrans.row(headJ) + eyeL_pos.transpose() - C.row(eyeLJ);
+//     jointTrans.row(eyeRJ) = C.row(headJ) + jointTrans.row(headJ) + eyeR_pos.transpose() - C.row(eyeRJ);
+//     jointTrans.row(headJ) = MatrixXd::Zero(1, 3);
+//     jointTrans(headJ, 1) = (jointTrans(eyeLJ, 1) + jointTrans(eyeRJ, 1)) * 0.5;
+//     C_calib = C + jointTrans;
 
-    cout << Wj.rows() << "*" << Wj.cols() << endl;
-    cout << jointTrans.rows() << "*" << jointTrans.cols() << endl;
-    V_calib = V + Wj * jointTrans.block(0, 0, C.rows() - 1, 3);
-    U = V_calib;
-    //MatrixXd jt = jointTrans.block(0,0,C.rows()-1,3);
+//     cout << Wj.rows() << "*" << Wj.cols() << endl;
+//     cout << jointTrans.rows() << "*" << jointTrans.cols() << endl;
+//     V_calib = V + Wj * jointTrans.block(0, 0, C.rows() - 1, 3);
+//     U = V_calib;
+//     //MatrixXd jt = jointTrans.block(0,0,C.rows()-1,3);
 
-    auto degen = CheckDegeneracy(U, T.block(0,0,T.rows(), 4));
-    cout<<"phantom scaling done...degen#: "<<degen.size()<<endl;
-    return ss.str();
-}
+//     auto degen = CheckDegeneracy(U, T.block(0,0,T.rows(), 4));
+//     cout<<"phantom scaling done...degen#: "<<degen.size()<<endl;
+//     return ss.str();
+// }
 
 void PhantomAnimator::Animate(RotationList vQ, Vector3d root)
 {
     vector<Vector3d> vT;
 
-    MatrixXd C_new = C_calib;
+    MatrixXd C_new = C;
     C_new.row(0) = root; //set root
 
     for (int i = 0; i < BE.rows(); i++)
     {
         Affine3d a;
-        a = Translation3d(Vector3d(C_new.row(BE(i, 0)).transpose())) * vQ[i].matrix() * Translation3d(Vector3d(-C_calib.row(BE(i, 0)).transpose()));
+        a = Translation3d(Vector3d(C_new.row(BE(i, 0)).transpose())) * vQ[i].matrix() * Translation3d(Vector3d(-C.row(BE(i, 0)).transpose()));
         vT.push_back(a.translation());
         C_new.row(BE(i, 1)) = a * Vector3d(C_new.row(BE(i, 1)));
     }
-    myDqs(V_calib, cleanWeights, vQ, vT, U);
+    myDqs(V, cleanWeights, vQ, vT, U);
 }
 
-bool PhantomAnimator::ReadProfileData(string fileName)
+bool PhantomAnimator::ReadProfileData(string profile)
 {
-    ifstream ifs(fileName);
+    ifstream ifs("profile.txt");
     if (!ifs.is_open())
     {
-        cout << "There is no " + fileName << endl;
+        cout << "There is no profile.txt" << endl;
         return false;
     }
-    profileIDs.clear();
-    jointLengths.clear();
-    eyeR_vec.clear();
-    eyeL_vec.clear();
+    //todo:
+    //1. read profile.txt while extracting the data for input "profile"
+    //2. scale the phantom and change V in to scaled V
+    return true;
 
-    int num;
-    ifs >> num;
-    string firstLine;
-    getline(ifs, firstLine);
-    jointLengths.resize(num);
-    eyeR_vec.resize(num);
-    eyeL_vec.resize(num);
+    // profileIDs.clear();
+    // jointLengths.clear();
+    // eyeR_vec.clear();
+    // eyeL_vec.clear();
 
-    getline(ifs, firstLine);
-    stringstream ss(firstLine);
-    vector<int> boneIDs;
-    for (int i = 0; i < 17; i++)
-    {
-        int boneID;
-        ss >> boneID;
-        boneIDs.push_back(boneID);
-    }
+    // int num;
+    // ifs >> num;
+    // string firstLine;
+    // getline(ifs, firstLine);
+    // jointLengths.resize(num);
+    // eyeR_vec.resize(num);
+    // eyeL_vec.resize(num);
 
-    for (int i = 0; i < num; i++)
-    {
-        string aLine;
-        getline(ifs, aLine);
-        stringstream ss1(aLine);
-        string name;
-        double d;
-        ss1 >> name;
-        profileIDs[name] = i;
-        for (int j = 0; j < 17; j++)
-        {
-            ss1 >> d;
-            jointLengths[i][boneIDs[j]] = d*cm;
-        }
-        for (int j = 0; j < 3; j++)
-        {
-            ss1 >> d;
-            eyeL_vec[i](j) = d;
-        }
-        for (int j = 0; j < 3; j++)
-        {
-            ss1 >> d;
-            eyeR_vec[i](j) = d;
-        }
-    }
+    // getline(ifs, firstLine);
+    // stringstream ss(firstLine);
+    // vector<int> boneIDs;
+    // for (int i = 0; i < 17; i++)
+    // {
+    //     int boneID;
+    //     ss >> boneID;
+    //     boneIDs.push_back(boneID);
+    // }
 
-    ifs.close();
+    // for (int i = 0; i < num; i++)
+    // {
+    //     string aLine;
+    //     getline(ifs, aLine);
+    //     stringstream ss1(aLine);
+    //     string name;
+    //     double d;
+    //     ss1 >> name;
+    //     profileIDs[name] = i;
+    //     for (int j = 0; j < 17; j++)
+    //     {
+    //         ss1 >> d;
+    //         jointLengths[i][boneIDs[j]] = d*cm;
+    //     }
+    //     for (int j = 0; j < 3; j++)
+    //     {
+    //         ss1 >> d;
+    //         eyeL_vec[i](j) = d;
+    //     }
+    //     for (int j = 0; j < 3; j++)
+    //     {
+    //         ss1 >> d;
+    //         eyeR_vec[i](j) = d;
+    //     }
+    // }
+
+    // ifs.close();
     return true;
 }
 

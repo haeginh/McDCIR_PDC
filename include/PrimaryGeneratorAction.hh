@@ -35,7 +35,6 @@
 #include "G4SystemOfUnits.hh"
 #include "G4RotationMatrix.hh"
 #include "G4RandomDirection.hh"
-#include "TETModelImport.hh"
 
 #include <map>
 #include <algorithm>

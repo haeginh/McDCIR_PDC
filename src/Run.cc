@@ -25,11 +25,23 @@
 //
 
 #include "Run.hh"
+#include "RunAction.hh"
+#include "G4RunManager.hh"
+#include "G4VUserDetectorConstruction.hh"
 
-Run::Run()
-:G4Run()
+Run::Run(RunAction* runAction)
+:G4Run(), fCollID(-1), fCollID_drf(-1)
 {
-	edepMap.clear();
+	parallel = static_cast<ParallelPhantom*>(
+		G4RunManager::GetRunManager()->GetUserDetectorConstruction()->GetParallelWorld(0));
+	G4int num = parallel->GetNumberOfPhantoms();
+	edep = Eigen::MatrixXd::Zero(num, 33);
+	edep2 = Eigen::MatrixXd::Zero(num, 33);
+	currentEdep = Eigen::MatrixXd::Zero(num, 33);
+	// eff = Eigen::VectorXd::Zero(num);
+	// eff2 = Eigen::VectorXd::Zero(num);
+	doseMap = runAction->GetDoseMap();
+	effDoseVec = runAction->GetEffDoseVec();
 }
 
 Run::~Run()
@@ -38,9 +50,11 @@ Run::~Run()
 
 void Run::RecordEvent(const G4Event* event)
 {
-	auto  fCollID
-	= G4SDManager::GetSDMpointer()->GetCollectionID("phantom/edep");
-
+	if(fCollID<0)
+	{
+		fCollID	= G4SDManager::GetSDMpointer()->GetCollectionID("phantom/edep");
+		fCollID_drf	= G4SDManager::GetSDMpointer()->GetCollectionID("phantom/drf");
+	}
 	// Hits collections
 	//
 	G4HCofThisEvent* HCE = event->GetHCofThisEvent();
@@ -50,22 +64,37 @@ void Run::RecordEvent(const G4Event* event)
 			static_cast<G4THitsMap<G4double>*>(HCE->GetHC(fCollID));
 
 	// sum up the energy deposition and the square of it
+	currentEdep.setZero();
 	for (auto itr : *evtMap->GetMap()) {
-		edepMap[itr.first].first  += *itr.second;                   //sum
-		edepMap[itr.first].second += (*itr.second) * (*itr.second); //sum square
+		auto idx = parallel->GetIdx(itr.first);
+		for(auto d:doseMap[idx.second])
+			currentEdep(d, idx.first) += *itr.second;
 	}
+
+	G4THitsMap<G4double>* evtMap_drf =
+			static_cast<G4THitsMap<G4double>*>(HCE->GetHC(fCollID_drf));
+	for (auto itr : *evtMap_drf)
+	{
+		G4int phantomID = std::floor(itr.first*0.1);
+		G4int idx(0);
+		if(itr.first-phantomID*10>0) idx = 10;
+		currentEdep(idx, phantomID) += *itr.second;
+	}
+
+	currentEdep = currentEdep.array() * massInv.array();
+	VectorXd currentEff = currentEdep * effDoseVec;
+	currentEdep.rightCols(1) = currentEff;
+	edep += currentEdep;
+	edep2 += currentEdep.cwiseAbs2();
 }
 
 void Run::Merge(const G4Run* run)
 {
 	// merge the data from each thread
-	EDEPMAP localMap = static_cast<const Run*>(run)->edepMap;
+	auto localRun = static_cast<const Run*>(run);
 
-	for(auto itr : localMap){
-		edepMap[itr.first].first  += itr.second.first;
-		edepMap[itr.first].second += itr.second.second;
-	}
-
+	edep += localRun->edep;
+	edep2 += localRun->edep2;
 	G4Run::Merge(run);
 }
 

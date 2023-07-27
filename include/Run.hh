@@ -32,22 +32,34 @@
 #include "G4Event.hh"
 #include "G4THitsMap.hh"
 #include "G4SDManager.hh"
+#include "ParallelPhantom.hh"
 
-typedef std::map<G4int, std::pair<G4double, G4double>> EDEPMAP;
-
+class RunAction;
 class Run : public G4Run
 {
 public:
-	Run();
+	Run(RunAction*);
 	virtual ~Run();
 
 	virtual void RecordEvent(const G4Event*);
     virtual void Merge(const G4Run*);
 
-    EDEPMAP* GetEdepMap() {return &edepMap;};
+	void DoseRead(G4String);
+    Eigen::MatrixXd GetEdepMat() {return edep;}
+    Eigen::MatrixXd GetEdep2Mat() {return edep2;}
+	void SetMassInv(const MatrixXd &mass) {
+		massInv = (mass.array()==0).cast<double>().matrix() + mass;
+		massInv = massInv.cwiseInverse();
+		massInv.conservativeResize(massInv.rows(), massInv.cols()+1);
+		massInv.rightCols(1) = Eigen::VectorXd::Ones(massInv.rows());
+	}
 
 private:
-	EDEPMAP edepMap;
+	Eigen::MatrixXd edep, edep2, currentEdep, massInv;
+	std::map<G4int, std::vector<G4int>>            doseMap; //suborgan:dose
+	Eigen::VectorXd                                effDoseVec;
+	G4int fCollID, fCollID_drf;
+	ParallelPhantom* parallel;
 };
 
 #endif

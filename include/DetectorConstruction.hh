@@ -37,13 +37,14 @@
 #include "G4Material.hh"
 #include "G4NistManager.hh"
 
+#include "G4GeometryManager.hh"
 #include "G4Box.hh"
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4PVParameterised.hh"
 #include "DetectorMessenger.hh"
 #include "ParallelPhantom.hh"
-#include "ParallelGlass.hh"
+// #include "ParallelGlass.hh"
 #include <Eigen/Core>
 
 class DetectorConstruction : public G4VUserDetectorConstruction
